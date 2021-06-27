@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">We are perpared</string>
+
+    <string-array name="UserType">
+        <item>Resident</item>
+        <item>Rescuer</item>
+        <item>Admin</item>
+    </string-array>
+</resources>

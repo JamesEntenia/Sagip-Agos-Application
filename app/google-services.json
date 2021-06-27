@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "751226503797",
+    "project_id": "we-are-perpared",
+    "storage_bucket": "we-are-perpared.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751226503797:android:9bc9d6f82b4e2580f02e3c",
+        "android_client_info": {
+          "package_name": "com.example.offlinemapbox"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "751226503797-uck4qi7ioucfd0s2moe0pts99tt04f13.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB871oAc7NAdrg9fIcR2pnY_rWWuauCOMo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "751226503797-uck4qi7ioucfd0s2moe0pts99tt04f13.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
