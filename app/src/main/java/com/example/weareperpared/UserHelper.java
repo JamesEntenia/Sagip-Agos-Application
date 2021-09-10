@@ -19,6 +19,7 @@ public class UserHelper {
         this.userType = userType;
         this.password = password;
         this.myRescuer = myRescuer;
+        this.online = online;
 
 
     }

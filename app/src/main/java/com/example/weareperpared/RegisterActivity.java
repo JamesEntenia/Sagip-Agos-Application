@@ -89,6 +89,7 @@ public class RegisterActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         yourNumber = (int) snapshot.getChildrenCount();
+
                         //loop to check the number and name of all registered account
                         for(DataSnapshot dataSnapshot:snapshot.getChildren()){
                             users = dataSnapshot.getValue(Users.class);
@@ -117,14 +118,23 @@ public class RegisterActivity extends AppCompatActivity {
                             accountIsExisting = true;
 
                             UserHelper userHelper;
-                            if(UserType.equals("Rescuer")) {
+                            if(UserType.getSelectedItem().toString().equals("Rescuer")) {
+
                                 userHelper = new UserHelper(Name.getText().toString(), Address.getText().toString(),
                                         CellphoneNumber.getText().toString(), "no", "", "", Password.getText().toString(),
-                                        UserType.getSelectedItem().toString(), "No rescuer assigned","Not assigned yet"," ","online");
+                                        UserType.getSelectedItem().toString(), "No rescuer assigned","Not assigned yet","","online");
+
                             }else{
-                                userHelper = new UserHelper(Name.getText().toString(), Address.getText().toString(),
-                                        CellphoneNumber.getText().toString(), "no", "", "", Password.getText().toString(),
-                                        UserType.getSelectedItem().toString(), "No rescuer assigned","online");
+                                userHelper = new UserHelper(
+                                        Name.getText().toString(),
+                                        Address.getText().toString(),
+                                        CellphoneNumber.getText().toString(),
+                                        "no",
+                                        "", "",
+                                        Password.getText().toString(),
+                                        UserType.getSelectedItem().toString(),
+                                        "No rescuer assigned",
+                                        "online");
                             }
                             residentChild = barangayRef.child(Name.getText().toString());
                             residentChild.setValue(userHelper);

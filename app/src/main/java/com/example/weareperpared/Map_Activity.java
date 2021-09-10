@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.res.ResourcesCompat;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -17,6 +18,7 @@ import android.content.IntentSender;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.graphics.Typeface;
 import android.icu.text.RelativeDateTimeFormatter;
 import android.location.Location;
 import android.location.LocationManager;
@@ -83,6 +85,8 @@ import com.mapbox.mapboxsdk.offline.OfflineTilePyramidRegionDefinition;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
+import com.mapbox.services.android.navigation.ui.v5.route.OnRouteSelectionChangeListener;
+import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.json.JSONObject;
@@ -124,7 +128,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     private TextView UI_NameTV,UI_AddressTv,UI_ContactTv,UI_myRescuerTv,UI_myRescuer,UI_Name,UI_Address,UI_Contact,UI_onlineTv;
     private ConstraintLayout identification;
 
-
+    private String resident_str = "Resident";
+    private String rescuer_str = "Rescuer";
+    private String assignedTo_str = "assignedTo";
+    private String admin_str = "Admin";
+    private String userType_str = "userType";
+    private String name_str = "name";
+    private String no_rescuer_assigned = "No rescuer assigned";
+    
     private boolean isEndNotified;
     private ProgressBar progressBar;
     private Button ShowMyLocation,AssignBtn;
@@ -190,7 +201,9 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     boolean assigning = false,activityStop = false;
     double residentLat,residentLng,rescuerLat,rescuerLng;
 
-    String residentColor = "#FF0000",rescuerColor = "#FF9500",adminColor = "#00E1FF",greyColor = "#9C9C9C";
+    //COLORS RESOURCES
+    int residentColor ,rescuerColor ,adminColor ,disableColor ,warningColor ;
+
     private LocationChangeListeningActivityLocationCallback callback = new LocationChangeListeningActivityLocationCallback(this);
 
 
@@ -214,8 +227,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         firebaseDatabase = FirebaseDatabase.getInstance();
         barangayRef = firebaseDatabase.getReference("Barangay");
-        Username = getIntent().getStringExtra("name");
-        ThisUserType = getIntent().getStringExtra("userType");
+        Username = getIntent().getStringExtra(name_str);
+        ThisUserType = getIntent().getStringExtra(userType_str);
 
         //ShowMyLocation.setText(residentExtras);
 
@@ -240,13 +253,23 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         identification = findViewById(R.id.Identification);
 
-
+        residentColor = ResourcesCompat.getColor(getResources(),R.color.residentColor, null);
+        rescuerColor = ResourcesCompat.getColor(getResources(),R.color.rescuerColor, null);
+        adminColor = ResourcesCompat.getColor(getResources(),R.color.adminColor, null);
+        disableColor = ResourcesCompat.getColor(getResources(),R.color.disableColor, null);
+        warningColor = ResourcesCompat.getColor(getResources(),R.color.warningColor, null);
 
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
         currentLocation = new Location(String.valueOf(new LatLng(0,0)));
         locationOfAssignedResident_forRescuer = new Location(String.valueOf(new LatLng(0,0)));
+
+        Typeface typeface = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            typeface = getResources().getFont(R.font.happymonkey);
+        }
+        AssignBtn.setTypeface(typeface);
 
 
 
@@ -261,12 +284,12 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     //______________________________________________________________________________________________
 
     public void forResident(){
-        if(ThisUserType.equals("Resident")) {
+        if(ThisUserType.equals(resident_str)) {
             barangayRef.child(Username).child("myRescuer").addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     String myRescuer = snapshot.getValue(String.class);
-                    if (!myRescuer.equals("No rescuer assigned")) {
+                    if (!myRescuer.equals(no_rescuer_assigned)) {
                         read_RescueMe(myRescuer);
                     }
                 }
@@ -280,7 +303,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     }
 
     public void hideUserIdentification(){
-        if(ThisUserType.equals("Rescuer")||ThisUserType.equals("Resident")){
+        if(ThisUserType.equals(rescuer_str)||ThisUserType.equals(resident_str)){
             identification.setVisibility(View.INVISIBLE);
         }
     }
@@ -293,23 +316,23 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             public void onClick(View v) {
 
                 //second click
-                if (ThisUserType.equals("Rescuer")) {
-                    barangayRef.child(Username).child("assignedTo").setValue("Not assigned yet");
+                if (ThisUserType.equals(rescuer_str)) {
+                    barangayRef.child(Username).child(assignedTo_str).setValue("Not assigned yet");
                     navigationMapRoute.updateRouteVisibilityTo(false);
                     AssignBtn.setVisibility(View.INVISIBLE);
-                    barangayRef.child(nameOfAssignedResident_forRescuer).child("myRescuer").setValue("No rescuer assigned");
+                    barangayRef.child(nameOfAssignedResident_forRescuer).child("myRescuer").setValue(no_rescuer_assigned);
                     barangayRef.child(nameOfAssignedResident_forRescuer).child("needRescue").setValue("no");
                     rescuerIsAvailable = true;
                     identification.setVisibility(View.INVISIBLE);
 
 
-                } else if (ThisUserType.equals("Admin")) {
+                } else if (ThisUserType.equals(admin_str)) {
                     if (assigning) {
 
-                        if (selectedUserType.equals("Rescuer")) {
+                        if (selectedUserType.equals(rescuer_str)) {
 
                             barangayRef.child(UI_NameTV.getText().toString()).child("myRescuer").setValue(selectedName);
-                            barangayRef.child(selectedName).child("assignedTo").setValue(UI_NameTV.getText().toString());
+                            barangayRef.child(selectedName).child(assignedTo_str).setValue(UI_NameTV.getText().toString());
                             try {
                                 MapStyle.addLayer(rescuerSymbolLayer);
                                 MapStyle.addLayer(adminSymbolLayer);
@@ -317,8 +340,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             }
 
 
-                        } else if (selectedUserType.equals("Resident")) {
-                            barangayRef.child(UI_NameTV.getText().toString()).child("assignedTo").setValue(selectedName);
+                        } else if (selectedUserType.equals(resident_str)) {
+                            barangayRef.child(UI_NameTV.getText().toString()).child(assignedTo_str).setValue(selectedName);
                             barangayRef.child(selectedName).child("myRescuer").setValue(UI_NameTV.getText().toString());
                             try {
                                 MapStyle.addLayer(residentSymbolLayer);
@@ -344,7 +367,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     }//first click
                     else {
 
-                        if (selectedUserType.equals("Rescuer")) {
+                        if (selectedUserType.equals(rescuer_str)) {
                             selectedName = UI_NameTV.getText().toString();
 
                             try {
@@ -354,7 +377,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             }
 
                             LatLng.setText("Please select resident to be rescued by " + selectedName);
-                        } else if (selectedUserType.equals("Resident")) {
+                        } else if (selectedUserType.equals(resident_str)) {
                             selectedName = UI_NameTV.getText().toString();
 
                             try {
@@ -402,7 +425,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
                     //ShowMyLocation.setText(dataSnapshot.getRef().getKey());
-                    if (ThisUserType.equals("Rescuer") || ThisUserType.equals("Admin")||(dataSnapshot.getRef().getKey().equals(myRescuer))) {
+                    if (ThisUserType.equals(rescuer_str) || ThisUserType.equals(admin_str)||(dataSnapshot.getRef().getKey().equals(myRescuer))) {
 
 
                         //READ ALL(NEED RESCUE) OF USER AND ADD EVERY CHANGE LISTENER
@@ -410,7 +433,6 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             @SuppressLint("SetTextI18n")
                             @Override
                             public void onDataChange(@NonNull DataSnapshot needRescuesnapshot) {
-
 
 
                                 //IF NEED RESCUE OF THE USE IS EQUAL TO YES THEN THIS PLAY ITS LOCATION FEATURE
@@ -429,6 +451,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
+
+
                                                 getUserTypeAndIndex(needRescuesnapshot.getRef().getParent().getKey());
 
                                             }
@@ -438,7 +462,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                                             }
                                         });
-                                    }else if(ThisUserType.equals("Rescuer")){
+                                    }else if(ThisUserType.equals(rescuer_str)){
                                         assignedToListener(needRescuesnapshot.getRef().getParent().getKey());
                                     }
 
@@ -482,9 +506,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
 
-
                 try {
-                    String userType = snapshot.child("userType").getValue(String.class);
+                    String userType = snapshot.child(userType_str).getValue(String.class);
                     String cellphoneNum = snapshot.child("cellphoneNum").getValue(String.class);
                     String address = snapshot.child("address").getValue(String.class);
                     Double Lat = snapshot.child("lat").getValue(Double.class);
@@ -511,28 +534,28 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         try {
 
 
-            if (userType.equals("Resident")) {
+            if (userType.equals(resident_str)) {
                 residentFeatureList.add(Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
-                residentFeatureList.get(needRescueCounter).addStringProperty("name", name);
+                residentFeatureList.get(needRescueCounter).addStringProperty(name_str, name);
                 residentFeatureList.get(needRescueCounter).addStringProperty("cellphoneNumber", cellphoneNum);
                 residentFeatureList.get(needRescueCounter).addStringProperty("address", address);
-                residentFeatureList.get(needRescueCounter).addStringProperty("userType", userType);
+                residentFeatureList.get(needRescueCounter).addStringProperty(userType_str, userType);
                 residentFeatureList.get(needRescueCounter).addNumberProperty("Lng",Lng);
                 residentFeatureList.get(needRescueCounter).addNumberProperty("Lat",Lat);
                 myRescuerListener(name);
                 onlineListener(name);
                 residentSymbol();
                 needRescueCounter++;
-            }else if (userType.equals("Rescuer")){
+            }else if (userType.equals(rescuer_str)){
 
 
 
                 rescuerFeatureList.add(Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
 
-                rescuerFeatureList.get(rescuerCounter).addStringProperty("name", name);
+                rescuerFeatureList.get(rescuerCounter).addStringProperty(name_str, name);
                 rescuerFeatureList.get(rescuerCounter).addStringProperty("cellphoneNumber", cellphoneNum);
                 rescuerFeatureList.get(rescuerCounter).addStringProperty("address", address);
-                rescuerFeatureList.get(rescuerCounter).addStringProperty("userType", userType);
+                rescuerFeatureList.get(rescuerCounter).addStringProperty(userType_str, userType);
                 rescuerFeatureList.get(rescuerCounter).addNumberProperty("Lng",Lng);
                 rescuerFeatureList.get(rescuerCounter).addNumberProperty("Lat",Lat);
                 assignedToListener(name);
@@ -540,14 +563,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 onlineListener(name);
                 rescuerSymbol();
                 rescuerCounter++;
-            }else if(userType.equals("Admin")){
+            }else if(userType.equals(admin_str)){
 
                 adminFeatureList.add(Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
 
-                adminFeatureList.get(adminCounter).addStringProperty("name", name);
+                adminFeatureList.get(adminCounter).addStringProperty(name_str, name);
                 adminFeatureList.get(adminCounter).addStringProperty("cellphoneNumber", cellphoneNum);
                 adminFeatureList.get(adminCounter).addStringProperty("address", address);
-                adminFeatureList.get(adminCounter).addStringProperty("userType", userType);
+                adminFeatureList.get(adminCounter).addStringProperty(userType_str, userType);
                 adminFeatureList.get(adminCounter).addNumberProperty("Lng",Lng);
                 adminFeatureList.get(adminCounter).addNumberProperty("Lat",Lat);
                 myRescuerListener(name);
@@ -574,18 +597,18 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
-                String userType = snapshot.child("userType").getValue(String.class);
+                String userType = snapshot.child(userType_str).getValue(String.class);
 
                 List<Feature> userFeatureList = new ArrayList<>();
 
-                if(userType.equals("Resident")){
+                if(userType.equals(resident_str)){
                     userFeatureList = residentFeatureList;
 
-                }else if(userType.equals("Rescuer")){
+                }else if(userType.equals(rescuer_str)){
                     userFeatureList = rescuerFeatureList;
 
 
-                }else if(userType.equals("Admin")){
+                }else if(userType.equals(admin_str)){
 
                     userFeatureList =adminFeatureList;
                 }
@@ -596,7 +619,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 //CHECK ALL NAMES IN PROPERTIES TO GET WHO OWN THE LOCATION CHANGE
                 for(int index = 0; index<userFeatureList.size();index++){
 
-                    String listName = userFeatureList.get(index).getStringProperty("name");
+                    String listName = userFeatureList.get(index).getStringProperty(name_str);
 
                     //IF FEATURE NAME IS EQUALS TO PARENT NAME OF THE CHANGED LOCATION
 
@@ -666,17 +689,17 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 Double Lng = snapshot.child("lng").getValue(Double.class), Lat =snapshot.child("lat").getValue(Double.class);
                 String cellphoneNumber = snapshot.child("cellphoneNum").getValue(String.class),
                         address = snapshot.child("address").getValue(String.class),
-                        userType = snapshot.child("userType").getValue(String.class);
+                        userType = snapshot.child(userType_str).getValue(String.class);
 
 
                 try {
-                    if(userType.equals("Resident")) {
+                    if(userType.equals(resident_str)) {
 
                         residentFeatureList.set(index, Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
-                        residentFeatureList.get(index).addStringProperty("name", name);
+                        residentFeatureList.get(index).addStringProperty(name_str, name);
                         residentFeatureList.get(index).addStringProperty("cellphoneNumber", cellphoneNumber);
                         residentFeatureList.get(index).addStringProperty("address", address);
-                        residentFeatureList.get(index).addStringProperty("userType", userType);
+                        residentFeatureList.get(index).addStringProperty(userType_str, userType);
                         residentFeatureList.get(index).addNumberProperty("Lng",Lng);
                         residentFeatureList.get(index).addNumberProperty("Lat",Lat);
                         myRescuerListener(name);
@@ -699,13 +722,13 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                         }
 
-                    }else if(userType.equals("Rescuer")) {
+                    }else if(userType.equals(rescuer_str)) {
 
                         rescuerFeatureList.set(index, Feature.fromGeometry(Point.fromLngLat(Lng,Lat)));
-                        rescuerFeatureList.get(index).addStringProperty("name", name);
+                        rescuerFeatureList.get(index).addStringProperty(name_str, name);
                         rescuerFeatureList.get(index).addStringProperty("cellphoneNumber", cellphoneNumber);
                         rescuerFeatureList.get(index).addStringProperty("address", address);
-                        rescuerFeatureList.get(index).addStringProperty("userType", userType);
+                        rescuerFeatureList.get(index).addStringProperty(userType_str, userType);
                         rescuerFeatureList.get(index).addNumberProperty("Lng",Lng);
                         rescuerFeatureList.get(index).addNumberProperty("Lat",Lat);
 
@@ -715,13 +738,13 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         onlineListener(name);
                         rescuerSymbol();
 
-                    }else if(userType.equals("Admin")) {
+                    }else if(userType.equals(admin_str)) {
 
                         adminFeatureList.set(index, Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
-                        adminFeatureList.get(index).addStringProperty("name", name);
+                        adminFeatureList.get(index).addStringProperty(name_str, name);
                         adminFeatureList.get(index).addStringProperty("cellphoneNumber", cellphoneNumber);
                         adminFeatureList.get(index).addStringProperty("address", address);
-                        adminFeatureList.get(index).addStringProperty("userType", userType);
+                        adminFeatureList.get(index).addStringProperty(userType_str, userType);
                         adminFeatureList.get(index).addNumberProperty("Lng",Lng);
                         adminFeatureList.get(index).addNumberProperty("Lat",Lat);
                         myRescuerListener(name);
@@ -749,47 +772,47 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
 
-                String userType = snapshot.child("userType").getValue(String.class);
+                String userType = snapshot.child(userType_str).getValue(String.class);
                 String myRescuer = snapshot.child("myRescuer").getValue(String.class);
                 String assignedTo = "Not assigned yet";
                 String assignedNextTo = "";
 
                 try {
-                    assignedTo = snapshot.child("assignedTo").getValue(String.class);
-                    assignedNextTo = snapshot.child("assignedTo").getValue(String.class);
+                    assignedTo = snapshot.child(assignedTo_str).getValue(String.class);
+                    assignedNextTo = snapshot.child(assignedTo_str).getValue(String.class);
                 }catch (Exception e){}
 
 
                 List<Feature> userFeatureList = new ArrayList<>();
 
-                if(userType.equals("Resident")){
+                if(userType.equals(resident_str)){
                     userFeatureList = residentFeatureList;
-                }else if(userType.equals("Rescuer")){
+                }else if(userType.equals(rescuer_str)){
                     userFeatureList = rescuerFeatureList;
-                }else if(userType.equals("Admin")){
+                }else if(userType.equals(admin_str)){
                     userFeatureList = adminFeatureList;
                 }
 
                 for(int index = 0; index<userFeatureList.size();index++) {
 
-                    String listName = userFeatureList.get(index).getStringProperty("name");
+                    String listName = userFeatureList.get(index).getStringProperty(name_str);
 
                     //IF FEATURE NAME IS EQUALS TO PARENT NAME OF THE CHANGED LOCATION AND DON'T NEED RESCUE THEN REMOVE LOCATION AND RESET LAYER
                     if (name.equals(listName)) {
 
                         if(purpose.equals("remove")) {
 
-                            if (userType.equals("Resident")) {
+                            if (userType.equals(resident_str)) {
                                 residentFeatureList.remove(index);
                                 residentSymbol();
                                 needRescueCounter--;
                                 break;
-                            } else if (userType.equals("Rescuer")) {
+                            } else if (userType.equals(rescuer_str)) {
                                 rescuerFeatureList.remove(index);
                                 rescuerSymbol();
                                 rescuerCounter--;
                                 break;
-                            } else if (userType.equals("Admin")) {
+                            } else if (userType.equals(admin_str)) {
 
 
                                 adminFeatureList.remove(index);
@@ -804,19 +827,19 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                             //THIS IS FOR SETTING VALUE OF MY RESCUER INTO FEATURE LIST
                         }else if(purpose.equals("set_myRescuer")){
-                            if (userType.equals("Resident")) {
+                            if (userType.equals(resident_str)) {
 
                                 residentFeatureList.get(index).addStringProperty("myRescuer",myRescuer);
                                 residentSymbol();
                                 if(name.equals(UI_NameTV.getText().toString())) {
                                     UI_myRescuerTv.setText(myRescuer);
-                                    if(ThisUserType.equals("Admin")) {
-                                        setUpAssignBtnAdmin(Color.parseColor(residentColor));
+                                    if(ThisUserType.equals(admin_str)) {
+                                        setUpAssignBtnAdmin(residentColor);
                                     }
                                 }
                                 break;
 
-                            /*} else if (userType.equals("Rescuer")) {
+                            /*} else if (userType.equals(rescuer_str)) {
 
                                 rescuerFeatureList.get(index).addStringProperty("myRescuer",myRescuer);
                                 rescuerSymbol();
@@ -826,7 +849,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                                 break;*/
 
-                            } else if (userType.equals("Admin")) {
+                            } else if (userType.equals(admin_str)) {
 
                                 adminFeatureList.get(index).addStringProperty("myRescuer",myRescuer);
                                 adminSymbol();
@@ -841,14 +864,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         }else if(purpose.equals("set_assignedTo")){
 
                             try {
-                                rescuerFeatureList.get(index).addStringProperty("assignedTo", assignedTo);
+                                rescuerFeatureList.get(index).addStringProperty(assignedTo_str, assignedTo);
                                 rescuerSymbol();
                             }catch (Exception e){}
 
                                 if(name.equals(UI_NameTV.getText().toString())) {
                                     UI_myRescuerTv.setText(assignedTo);
-                                    if (ThisUserType.equals("Admin")) {
-                                        setUpAssignBtnAdmin(Color.parseColor(rescuerColor));
+                                    if (ThisUserType.equals(admin_str)) {
+                                        setUpAssignBtnAdmin(rescuerColor);
                                     }
                                 }
 
@@ -858,7 +881,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                             String online = snapshot.child("online").getValue(String.class);
 
-                            if (userType.equals("Resident")) {
+                            if (userType.equals(resident_str)) {
                                 residentFeatureList.get(index).addStringProperty("online", online);
                                 residentSymbol();
                                 if (name.equals(UI_NameTV.getText().toString()))
@@ -866,7 +889,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
                                 break;
-                            }else if (userType.equals("Rescuer")) {
+                            }else if (userType.equals(rescuer_str)) {
                                 rescuerFeatureList.get(index).addStringProperty("online", online);
                                 rescuerSymbol();
                                 if (name.equals(UI_NameTV.getText().toString()))
@@ -874,7 +897,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
                                 break;
-                            }else if (userType.equals("Admin")) {
+                            }else if (userType.equals(admin_str)) {
                                 adminFeatureList.get(index).addStringProperty("online", online);
                                 adminSymbol();
                                 if (name.equals(UI_NameTV.getText().toString()))
@@ -943,7 +966,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     }
 
     public void assignedToListener(String name){
-        barangayRef.child(name).child("assignedTo").addValueEventListener(new ValueEventListener() {
+        barangayRef.child(name).child(assignedTo_str).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 featureListScanner(name,"set_assignedTo");
@@ -986,7 +1009,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     try {
                         if (residentFeatureList.get(index).getStringProperty("myRescuer").equals(name) && rescuerIsAvailable) {
                             testcount++;
-                            nameOfAssignedResident_forRescuer = residentFeatureList.get(index).getStringProperty("name");
+                            nameOfAssignedResident_forRescuer = residentFeatureList.get(index).getStringProperty(name_str);
                             rescuerIsAvailable = false;
                             Double Lat = (Double) residentFeatureList.get(index).getNumberProperty("Lat");
                             Double Lng = (Double) residentFeatureList.get(index).getNumberProperty("Lng");
@@ -1003,6 +1026,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         }
     }
 
+
+
     //-----MAP MARKERS------------------------------------------------------------------------------
     public void mapClickListener(){
 
@@ -1010,6 +1035,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             @SuppressLint("UseCompatLoadingForDrawables")
             @Override
             public boolean onMapClick(@NonNull com.mapbox.mapboxsdk.geometry.LatLng point) {
+
 
             try {
                 //this will identify the clicked symbol
@@ -1023,12 +1049,12 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 //RESCUER
                 if (!rescuerFeatures.isEmpty()) {
                     Feature selectedFeature = rescuerFeatures.get(0);
-                    String name = selectedFeature.getStringProperty("name");
+                    String name = selectedFeature.getStringProperty(name_str);
                     String cellphoneNumber = selectedFeature.getStringProperty("cellphoneNumber");
                     String address = selectedFeature.getStringProperty("address");
                     String myRescuer = selectedFeature.getStringProperty("myRescuer");
-                    String userType = selectedFeature.getStringProperty("userType");
-                    String assignedTo = selectedFeature.getStringProperty("assignedTo");
+                    String userType = selectedFeature.getStringProperty(userType_str);
+                    String assignedTo = selectedFeature.getStringProperty(assignedTo_str);
                     String online = selectedFeature.getStringProperty("online");
 
                     UI_myRescuerTv.setText(assignedTo);
@@ -1039,16 +1065,16 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     UI_myRescuer.setText("Assigned to rescue:");
 
 
-                    UI_Name.setTextColor(Color.parseColor(rescuerColor));
-                    UI_Address.setTextColor(Color.parseColor(rescuerColor));
-                    UI_Contact.setTextColor(Color.parseColor(rescuerColor));
-                    UI_myRescuer.setTextColor(Color.parseColor(rescuerColor));
+                    UI_Name.setTextColor(rescuerColor);
+                    UI_Address.setTextColor(rescuerColor);
+                    UI_Contact.setTextColor(rescuerColor);
+                    UI_myRescuer.setTextColor(rescuerColor);
 
 
                     //AssignBtn.setBackground(AssignBtn.getContext().getResources().getDrawable(R.color.rescuerColor));
-                    AssignBtn.setBackgroundColor(Color.parseColor(rescuerColor));
-                    TextBtn.setBackgroundColor(Color.parseColor(rescuerColor));
-                    CallBtn.setBackgroundColor(Color.parseColor(rescuerColor));
+                    AssignBtn.setBackgroundColor(rescuerColor);
+                    TextBtn.setBackgroundColor(rescuerColor);
+                    CallBtn.setBackgroundColor(rescuerColor);
 
                     rescuerLat = (double) selectedFeature.getNumberProperty("Lat");
                     rescuerLng = (double) selectedFeature.getNumberProperty("Lng");
@@ -1064,16 +1090,16 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     //IF RESCUER IS ASSIGNED FIND A ROUTE TO ITS RESIDENT
                     if (!assignedTo.equals("Not assigned yet")) {
                         Point origin = Point.fromLngLat(rescuerLng, rescuerLat);
-                        findRouteFrom(origin, assignedTo, "Resident");
+                        findRouteFrom(origin, assignedTo, resident_str);
                     }
 
 
 
-                    if(ThisUserType.equals("Admin")){
+                    if(ThisUserType.equals(admin_str)){
 
                         AssignBtn.setText("Assign me");
                         AssignBtn.setVisibility(View.VISIBLE);
-                        setUpAssignBtnAdmin(Color.parseColor(rescuerColor));
+                        setUpAssignBtnAdmin(rescuerColor);
 
                     }else{
                         AssignBtn.setVisibility(View.INVISIBLE);
@@ -1082,13 +1108,22 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 }
                 //RESIDENT
                 else if (!residentFeatures.isEmpty()) {
+
+
                     Feature selectedFeature = residentFeatures.get(0);
-                    String name = selectedFeature.getStringProperty("name");
+
+
+
+                    String name = selectedFeature.getStringProperty(name_str);
                     String cellphoneNumber = selectedFeature.getStringProperty("cellphoneNumber");
                     String address = selectedFeature.getStringProperty("address");
                     String myRescuer = selectedFeature.getStringProperty("myRescuer");
-                    String userType = selectedFeature.getStringProperty("userType");
+                    String userType = selectedFeature.getStringProperty(userType_str);
                     String online = selectedFeature.getStringProperty("online");
+
+
+
+
 
                     UI_myRescuerTv.setText(myRescuer);
                     UI_NameTV.setText(name);
@@ -1099,14 +1134,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     identification.setVisibility(View.VISIBLE);
 
 
-                    UI_Name.setTextColor(Color.parseColor(residentColor));
-                    UI_Address.setTextColor(Color.parseColor(residentColor));
-                    UI_Contact.setTextColor(Color.parseColor(residentColor));
-                    UI_myRescuer.setTextColor(Color.parseColor(residentColor));
+                    UI_Name.setTextColor(residentColor);
+                    UI_Address.setTextColor(residentColor);
+                    UI_Contact.setTextColor(residentColor);
+                    UI_myRescuer.setTextColor(residentColor);
 
-                    AssignBtn.setBackgroundColor(Color.parseColor(residentColor));
-                    CallBtn.setBackgroundColor(Color.parseColor(residentColor));
-                    TextBtn.setBackgroundColor(Color.parseColor(residentColor));
+                    AssignBtn.setBackgroundColor(residentColor);
+                    CallBtn.setBackgroundColor(residentColor);
+                    TextBtn.setBackgroundColor(residentColor);
 
                     residentLat = (double) selectedFeature.getNumberProperty("Lat");
                     residentLng = (double) selectedFeature.getNumberProperty("Lng");
@@ -1119,37 +1154,39 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     }
 
                     // IF RESIDENT IS CLICKED AND HAS A RESCUER FIND ROUTE TO ITS RESCUER
-                    if (!myRescuer.equals("No rescuer assigned")) {
+                    if (!myRescuer.equals(no_rescuer_assigned)) {
                         Point origin = Point.fromLngLat(residentLng, residentLat);
-                        findRouteFrom(origin, myRescuer, "Rescuer");
+                        findRouteFrom(origin, myRescuer, rescuer_str);
                     }
 
 
-
-                    if(ThisUserType.equals("Rescuer")&&Username.equals(myRescuer)){
+                    if(ThisUserType.equals(rescuer_str)&&Username.equals(myRescuer)){
                         AssignBtn.setVisibility(View.VISIBLE);
                         AssignBtn.setText("Done");
 
                         if(!AssignBtn.isEnabled()){
-                            AssignBtn.setBackgroundColor(Color.parseColor(greyColor));
+                            AssignBtn.setBackgroundColor(disableColor);
                         }
-                    }else if(ThisUserType.equals("Admin")){
+                    }else if(ThisUserType.equals(admin_str)){
                         AssignBtn.setText("Start rescue");
                         AssignBtn.setVisibility(View.VISIBLE);
-                        setUpAssignBtnAdmin(Color.parseColor(residentColor));
+                        setUpAssignBtnAdmin(residentColor);
 
                     }else{
                         AssignBtn.setVisibility(View.INVISIBLE);
                     }
+
+
                 }
                 //ADMIN
                 else if (!adminFeatures.isEmpty()) {
                     Feature selectedFeature = adminFeatures.get(0);
-                    String name = selectedFeature.getStringProperty("name");
+
+                    String name = selectedFeature.getStringProperty(name_str);
                     String cellphoneNumber = selectedFeature.getStringProperty("cellphoneNumber");
                     String address = selectedFeature.getStringProperty("address");
                     String myRescuer = selectedFeature.getStringProperty("myRescuer");
-                    String userType = selectedFeature.getStringProperty("userType");
+                    String userType = selectedFeature.getStringProperty(userType_str);
                     String online = selectedFeature.getStringProperty("online");
 
                     UI_myRescuerTv.setText(myRescuer);
@@ -1158,12 +1195,12 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     UI_ContactTv.setText(cellphoneNumber);
                     AssignBtn.setVisibility(View.INVISIBLE);
 
-                    CallBtn.setBackgroundColor(Color.parseColor(adminColor));
-                    TextBtn.setBackgroundColor(Color.parseColor(adminColor));
-                    UI_Name.setTextColor(Color.parseColor(adminColor));
-                    UI_Address.setTextColor(Color.parseColor(adminColor));
-                    UI_Contact.setTextColor(Color.parseColor(adminColor));
-                    UI_myRescuer.setTextColor(Color.parseColor(adminColor));
+                    CallBtn.setBackgroundColor(adminColor);
+                    TextBtn.setBackgroundColor(adminColor);
+                    UI_Name.setTextColor(adminColor);
+                    UI_Address.setTextColor(adminColor);
+                    UI_Contact.setTextColor(adminColor);
+                    UI_myRescuer.setTextColor(adminColor);
 
                     UI_online(online);
 
@@ -1172,23 +1209,38 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         selectedUserType = userType;
                     }
 
-                    navigationMapRoute.updateRouteVisibilityTo(false);
+                    //navigationMapRoute.updateRouteVisibilityTo(false);
                 }
                 //WARNING
                 else if (!warningFeatures.isEmpty()) {
                     Feature selectedFeature = warningFeatures.get(0);
-                    String name = selectedFeature.getStringProperty("name");
+                    String name = selectedFeature.getStringProperty(name_str);
+
+
+                    CallBtn.setBackgroundColor(warningColor);
+                    TextBtn.setBackgroundColor(warningColor);
+                    UI_Name.setTextColor(warningColor);
+                    UI_Address.setTextColor(warningColor);
+                    UI_Contact.setTextColor(warningColor);
+                    UI_myRescuer.setTextColor(warningColor);
+
+
                     UI_NameTV.setText(name);
                     UI_AddressTv.setText("Unkown");
                     UI_ContactTv.setText("Unkown");
                     AssignBtn.setVisibility(View.INVISIBLE);
 
-                    navigationMapRoute.updateRouteVisibilityTo(false);
+                    //navigationMapRoute.updateRouteVisibilityTo(false);
                 } else {
-                    navigationMapRoute.updateRouteVisibilityTo(false);
+                    //navigationMapRoute.updateRouteVisibilityTo(false);
+                    identification.setVisibility(View.INVISIBLE);
+                    AssignBtn.setVisibility(View.INVISIBLE);
                 }
 
-            }catch (Exception e){};
+            }catch (Exception e){
+                LatLng.setVisibility(View.VISIBLE);
+                LatLng.setText(e.toString());
+            };
                 return true;
             }
         });
@@ -1201,19 +1253,19 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             UI_onlineTv.setText(online);
         }else{
             UI_onlineTv.setText(online);
-            UI_onlineTv.setTextColor(Color.parseColor(greyColor));
+            UI_onlineTv.setTextColor(disableColor);
         }
     }
 
     public void setUpAssignBtnRescuer(){
 //LatLng.setText((locationOfAssignedResident_forRescuer.getLongitude()+0.0008)+">"+currentLocation.getLongitude()+">"+(locationOfAssignedResident_forRescuer.getLongitude()-0.0008 ));
-        if(ThisUserType.equals("Rescuer")) {
+        if(ThisUserType.equals(rescuer_str)) {
             if ((locationOfAssignedResident_forRescuer.getLatitude() + 0.0006 >= currentLocation.getLatitude()) && (locationOfAssignedResident_forRescuer.getLatitude() - 0.0006 <= currentLocation.getLatitude()) &&
                     (locationOfAssignedResident_forRescuer.getLongitude() + 0.0006 >= currentLocation.getLongitude()) && (locationOfAssignedResident_forRescuer.getLongitude() - 0.0006 <= currentLocation.getLongitude())) {
 
                 //ShowMyLocation.setText("Enable");
                 AssignBtn.setEnabled(true);
-                AssignBtn.setBackgroundColor(Color.parseColor(residentColor));
+                AssignBtn.setBackgroundColor(residentColor);
             } else {
                 AssignBtn.setEnabled(false);
                 AssignBtn.setBackgroundColor(GRAY);
@@ -1227,7 +1279,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     public void setUpAssignBtnAdmin(int color){
 
         String myRescuer = UI_myRescuerTv.getText().toString();
-        if(myRescuer.equals("No rescuer assigned")||myRescuer.equals("Not assigned yet")){
+        if(myRescuer.equals(no_rescuer_assigned)||myRescuer.equals("Not assigned yet")){
             AssignBtn.setEnabled(true);
             AssignBtn.setBackgroundColor(color);
 
@@ -1245,9 +1297,9 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         if(!assigning) {
 
-            if (userType.equals("Resident")) {
+            if (userType.equals(resident_str)) {
                 for (int counter = 0; counter < residentFeatureList.size(); counter++) {
-                    if (residentFeatureList.get(counter).getStringProperty("name").equals(name)) {
+                    if (residentFeatureList.get(counter).getStringProperty(name_str).equals(name)) {
                         Point destination = Point.fromLngLat(
                                 (double) residentFeatureList.get(counter).getNumberProperty("Lng"),
                                 (double) residentFeatureList.get(counter).getNumberProperty("Lat"));
@@ -1257,10 +1309,10 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 }
 
 
-            } else if (userType.equals("Rescuer")) {
+            } else if (userType.equals(rescuer_str)) {
 
                 for (int counter = 0; counter < rescuerFeatureList.size(); counter++) {
-                    if (rescuerFeatureList.get(counter).getStringProperty("name").equals(name)) {
+                    if (rescuerFeatureList.get(counter).getStringProperty(name_str).equals(name)) {
                         Point destination = Point.fromLngLat(
                                 (double) rescuerFeatureList.get(counter).getNumberProperty("Lng"),
                                 (double) rescuerFeatureList.get(counter).getNumberProperty("Lat"));
@@ -1280,9 +1332,11 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 .destination(destination)
                 .build()
                 .getRoute(new Callback<DirectionsResponse>() {
-            @SuppressLint("LogNotTimber")
+            @SuppressLint({"LogNotTimber", "SetTextI18n"})
             @Override
             public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
+
+
                 if(response.body()==null){
                     Log.e(TAG,"No routes found,check rigth user and access token");
                     return;
@@ -1293,6 +1347,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                 DirectionsRoute currentRoute = response.body().routes().get(0);
 
+
                 if(navigationMapRoute != null){
 
                     navigationMapRoute.updateRouteVisibilityTo(false);
@@ -1302,6 +1357,22 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                 }
                 navigationMapRoute.addRoute(currentRoute);
+
+                /* DISTANCE
+                LatLng.setVisibility(View.VISIBLE);
+                LatLng.setText(String.format("%.2f", currentRoute.distance()/1000)+"km");
+
+
+
+                //TEST ----------------------------------------------------------------------------
+                navigationMapRoute.setOnRouteSelectionChangeListener(new OnRouteSelectionChangeListener() {
+                    @Override
+                    public void onNewPrimaryRouteSelected(DirectionsRoute directionsRoute) {
+                        navigationMapRoute.addRoute(directionsRoute);
+                    }
+                });
+                //---------------------------------------------------------------------------------
+*/
             }
 
             @Override
@@ -1321,7 +1392,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         //SYMBOL COORDINATES SAMPLE
         warningFeatureList.add(Feature.fromGeometry(
                 Point.fromLngLat(120.912121, 14.8230204)));
-        warningFeatureList.get(0).addStringProperty("name","Flood Warning");
+        warningFeatureList.get(0).addStringProperty(name_str,"Flood Warning");
 
         //reset geojson MapStyle source
         warningMapSource.setGeoJson(FeatureCollection.fromFeatures(warningFeatureList));
@@ -1340,7 +1411,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         //reset map layer
         try {
-            if(!assigning||selectedUserType.equals("Resident")) {
+            if(!assigning||selectedUserType.equals(resident_str)) {
                 MapStyle.removeLayer(rescuerSymbolLayer);
                 MapStyle.addLayer(rescuerSymbolLayer);
             }
@@ -1355,7 +1426,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         //reset map layer
         try {
-            if(!assigning||selectedUserType.equals("Rescuer")) {
+            if(!assigning||selectedUserType.equals(rescuer_str)) {
                 MapStyle.removeLayer(residentSymbolLayer);
                 MapStyle.addLayer(residentSymbolLayer);
             }
@@ -1563,7 +1634,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 if(locationIsAccurate&&GPSisOn){
                     barangayRef.child(Username).child("needRescue").setValue("yes");
                     ShowMyLocation.setBackgroundResource(R.drawable.gps_tracked);
-                    if(ThisUserType.equals("Rescuer")){
+                    if(ThisUserType.equals(rescuer_str)){
                         getResidentLocationForRescuer(Username);
                     }
 
@@ -1572,7 +1643,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     barangayRef.child(Username).child("needRescue").setValue("yes");
                     LatLng.setText("Please do not leave the app until we find your location.");
                     LatLng.setVisibility(View.VISIBLE);
-                    if(ThisUserType.equals("Rescuer")){
+                    if(ThisUserType.equals(rescuer_str)){
                         getResidentLocationForRescuer(Username);
                     }
 
@@ -1670,7 +1741,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         if(showComponentLocationClicked) {
 
                             barangayRef.child(Username).child("needRescue").setValue("yes");
-                            if(ThisUserType.equals("Rescuer")){
+                            if(ThisUserType.equals(rescuer_str)){
                                 getResidentLocationForRescuer(Username);
                             }
                             LatLng.setText("Please do not leave the app until we find your location.");
@@ -1984,27 +2055,29 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
     //-----Zoom While Tracking----------------------------------------------------------------------
-    public void zoomWhileTracking(){
-        locationComponent.setCameraMode(CameraMode.TRACKING_COMPASS, new OnLocationCameraTransitionListener() {
-            @Override
-            public void onLocationCameraTransitionFinished(@CameraMode.Mode int cameraMode) {
-                locationComponent.zoomWhileTracking(15.2, 500, new MapboxMap.CancelableCallback() {
-                    @Override
-                    public void onCancel() {
+    public void zoomWhileTracking() {
+        try{
 
-                    }
-                    @Override
-                    public void onFinish() {
-                        locationComponent.tiltWhileTracking(90);
+            locationComponent.setCameraMode(CameraMode.TRACKING_COMPASS, new OnLocationCameraTransitionListener() {
+                @Override
+                public void onLocationCameraTransitionFinished(@CameraMode.Mode int cameraMode) {
+                    locationComponent.zoomWhileTracking(15.2, 500, new MapboxMap.CancelableCallback() {
+                        @Override
+                        public void onCancel() {
 
-                    }
-                });
-            }
+                        }
+                        @Override
+                        public void onFinish() {
+                            locationComponent.tiltWhileTracking(90);
 
-            @Override
-            public void onLocationCameraTransitionCanceled(@CameraMode.Mode int cameraMode) {
-            }
-        });
+                        }
+                    });
+                }
+                @Override
+                public void onLocationCameraTransitionCanceled(@CameraMode.Mode int cameraMode) {
+                }
+            });
+        }catch(Exception e){}
 
     }
     //----------------------------------------------------------------------------------------------
