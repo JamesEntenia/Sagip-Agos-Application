@@ -2,13 +2,17 @@ package com.example.weareperpared;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
@@ -23,7 +27,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText LoginNumber,LoginPassword;
     private Button LoginBtn,LoginRegisterBtn;
-
+    private ImageView connectionStatus;
     FirebaseDatabase firebaseDatabase;
     DatabaseReference barangayRef,residentChild,residentRef,rescuerRef,adminRef;
 
@@ -33,10 +37,12 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        getSupportActionBar().hide();
 
         LoginBtn = findViewById(R.id.LoginBtn);
         LoginNumber = findViewById(R.id.LoginNumber);
         LoginPassword = findViewById(R.id.LoginPassword);
+        connectionStatus = findViewById(R.id.loginConnection);
         LoginRegisterBtn = findViewById(R.id.LoginRegisterBtn);
 
         firebaseDatabase = FirebaseDatabase.getInstance();
@@ -46,9 +52,36 @@ public class LoginActivity extends AppCompatActivity {
         //rescuerRef = barangayRef.child("Rescuer");
         //adminRef = barangayRef.child("Admin");
 
+        checkIfFirebaseIsConnected();
         register();
         Login();
     }
+
+    public void checkIfFirebaseIsConnected(){
+
+        DatabaseReference connectedRef = FirebaseDatabase.getInstance().getReference(".info/connected");
+        connectedRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                boolean connected = snapshot.getValue(Boolean.class);
+
+
+                if (connected) {
+                    connectionStatus.setBackgroundResource(R.drawable.internet_connected);
+                } else {
+                    connectionStatus.setBackgroundResource(R.drawable.internet_disconnected);
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
 
     private void register() {
         LoginRegisterBtn.setOnClickListener(new View.OnClickListener() {
@@ -71,6 +104,7 @@ public class LoginActivity extends AppCompatActivity {
                 barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+
 
                         // for each loop that reads all children
                         for (DataSnapshot dataSnapshot:snapshot.getChildren()){

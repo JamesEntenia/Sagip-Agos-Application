@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
+    android:visibility="visible"
     tools:context=".MainActivity">
 
     <com.mapbox.mapboxsdk.maps.MapView
@@ -12,183 +13,358 @@
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="visible"
         mapbox:layout_constraintBottom_toBottomOf="parent"
         mapbox:layout_constraintEnd_toEndOf="parent"
         mapbox:layout_constraintStart_toStartOf="parent"
         mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:mapbox_cameraTargetLat="14.848204"
-        mapbox:mapbox_cameraTargetLng="120.904121"
-        mapbox:mapbox_cameraZoom="15">
+        mapbox:mapbox_cameraTargetLat="11.832944"
+        mapbox:mapbox_cameraTargetLng="-237.508239"
+        mapbox:mapbox_cameraZoom="10">
 
 
     </com.mapbox.mapboxsdk.maps.MapView>
 
-    <TextView
-        android:id="@+id/OpenMobileData"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Please open your mobile data to download the map."
-        android:textColor="#BFBEBE"
-        android:textSize="16sp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible"
         mapbox:layout_constraintBottom_toBottomOf="parent"
         mapbox:layout_constraintEnd_toEndOf="parent"
         mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="@+id/mapView" />
+        mapbox:layout_constraintTop_toTopOf="parent">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/Identification"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginHorizontal="5dp"
-        android:background="@drawable/background"
-        android:visibility="visible"
-        mapbox:layout_constraintBottom_toBottomOf="@+id/mapView"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:layout_constraintVertical_bias="1.0">
-
-        <Button
-            android:id="@+id/CallBtn"
-            android:layout_width="60dp"
-            android:layout_height="32dp"
-            android:text="call"
-            android:textSize="10sp"
-            mapbox:backgroundTint="#1C325E"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_contact"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_contact"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <Button
-            android:id="@+id/TextBtn"
-            android:layout_width="60dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginLeft="10dp"
-            android:text="Text"
-            android:textSize="10sp"
-            mapbox:backgroundTint="#1C325E"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="@+id/UI_ContactTv"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toEndOf="@+id/CallBtn"
-            mapbox:layout_constraintTop_toTopOf="@+id/CallBtn"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_onlineTv"
-            android:layout_width="wrap_content"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/Identification"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginRight="20dp"
-            android:text="Offline"
-            android:textColor="#9C9C9C"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="1.0"
-            mapbox:layout_constraintStart_toEndOf="@+id/UI_address"
-            mapbox:layout_constraintTop_toTopOf="parent"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_myRescuerTv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Unkown"
-            android:textColor="#FFFFFF"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_myRescuer"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_myRescuer"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_myRescuer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:text="Being rescue by:"
-            android:textColor="#9C9C9C"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_NameTv"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_NameTv"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_ContactTv"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
             android:layout_marginStart="5dp"
             android:layout_marginLeft="5dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginRight="20dp"
-            android:text="09325198054"
-            android:textColor="#FFFFFF"
+            android:layout_marginEnd="5dp"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/identificaiton_backround"
+            android:visibility="gone"
             mapbox:layout_constraintBottom_toBottomOf="parent"
             mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toEndOf="@+id/UI_contact"
-            mapbox:layout_constraintTop_toTopOf="@+id/UI_contact"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_NameTv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Unkown"
-            android:textColor="#FFFFFF"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_name"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_name"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_AddressTv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Unkown"
-            android:textColor="#FFFFFF"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_address"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_address"
-            mapbox:layout_constraintVertical_bias="0.0" />
-
-        <TextView
-            android:id="@+id/UI_address"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Address:"
-            android:textColor="#9C9C9C"
-            mapbox:layout_constraintBottom_toBottomOf="parent"
-            mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.48"
             mapbox:layout_constraintStart_toStartOf="parent"
             mapbox:layout_constraintTop_toTopOf="parent"
-            mapbox:layout_constraintVertical_bias="0.0" />
+            mapbox:layout_constraintVertical_bias="1.0">
 
-        <TextView
-            android:id="@+id/UI_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            <Button
+                android:id="@+id/CallBtn"
+                android:layout_width="70dp"
+                android:layout_height="32dp"
+                android:layout_marginBottom="5dp"
+                android:text="call"
+                android:textSize="10sp"
+                android:visibility="gone"
+                mapbox:backgroundTint="#5681f7"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <Button
+                android:id="@+id/TextBtn"
+                android:layout_width="70dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_marginBottom="10dp"
+                android:text="Text"
+                android:textSize="10sp"
+                mapbox:backgroundTint="#5681f7"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toEndOf="@+id/CallBtn"
+                mapbox:layout_constraintTop_toTopOf="@+id/CallBtn"
+                mapbox:layout_constraintVertical_bias="0.0"
+                tools:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/DoneBtn"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginRight="24dp"
+                android:background="@drawable/disable_done"
+                android:visibility="visible"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="1.0"
+                mapbox:layout_constraintStart_toEndOf="@+id/UI_NameTv"
+                mapbox:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/UI_myRescuerTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:layout_marginRight="5dp"
+                android:layout_marginBottom="10dp"
+                android:text="Unkown"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toStartOf="@+id/CallBtn"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toStartOf="@+id/UI_myRescuer"
+                mapbox:layout_constraintTop_toBottomOf="@+id/UI_myRescuer"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/UI_myRescuer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Being rescue by:"
+                android:textColor="#9C9C9C"
+                android:visibility="gone"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toStartOf="@+id/UI_NameTv"
+                mapbox:layout_constraintTop_toBottomOf="@+id/UI_NameTv"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/UI_NameTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="James M. Entenia"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintStart_toStartOf="@+id/UI_name"
+                mapbox:layout_constraintTop_toBottomOf="@+id/time_distance"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/UI_AddressTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:layout_marginRight="10dp"
+                android:text="Unkown"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toStartOf="@+id/UI_address"
+                mapbox:layout_constraintTop_toBottomOf="@+id/UI_address"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/UI_address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="Address:"
+                android:textColor="#9C9C9C"
+                android:visibility="gone"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.39"
+                mapbox:layout_constraintStart_toEndOf="@+id/UI_name"
+                mapbox:layout_constraintTop_toTopOf="parent"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/UI_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="15dp"
+                android:text="Name:"
+                android:textColor="#9C9C9C"
+                android:visibility="gone"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toStartOf="parent"
+                mapbox:layout_constraintTop_toTopOf="parent"
+                mapbox:layout_constraintVertical_bias="0.0" />
+
+            <TextView
+                android:id="@+id/speedTv"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginLeft="24dp"
+                android:background="@drawable/button_background"
+                android:gravity="center"
+                android:text="0 \nkm/h"
+                android:textColor="@color/teal_700"
+                android:textSize="12sp"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toStartOf="@+id/UI_NameTv"
+                mapbox:layout_constraintHorizontal_bias="0.0"
+                mapbox:layout_constraintStart_toStartOf="parent"
+                mapbox:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/contact"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintStart_toStartOf="parent"
+                mapbox:layout_constraintTop_toBottomOf="@+id/UI_NameTv"
+                mapbox:layout_constraintVertical_bias="0.0">
+
+                <TextView
+                    android:id="@+id/UI_ContactTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginLeft="5dp"
+                    android:text="09325198054"
+                    android:textColor="@color/teal_700"
+                    android:textSize="12sp"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toEndOf="@+id/UI_contact"
+                    mapbox:layout_constraintTop_toTopOf="@+id/UI_contact"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+
+                <TextView
+                    android:id="@+id/UI_contact"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/contact_icon"
+                    android:textColor="#9C9C9C"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toStartOf="parent"
+                    mapbox:layout_constraintTop_toTopOf="parent"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/time_distance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                mapbox:layout_constraintBottom_toBottomOf="parent"
+                mapbox:layout_constraintEnd_toEndOf="parent"
+                mapbox:layout_constraintStart_toStartOf="parent"
+                mapbox:layout_constraintTop_toTopOf="parent"
+                mapbox:layout_constraintVertical_bias="0.0">
+
+                <TextView
+                    android:id="@+id/distance_icon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/destination_icon"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toStartOf="parent"
+                    mapbox:layout_constraintTop_toTopOf="parent"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+
+                <TextView
+                    android:id="@+id/distance_icon2"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="18dp"
+                    android:layout_marginLeft="18dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/clock_icon"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toEndOf="@+id/distanceTv"
+                    mapbox:layout_constraintTop_toTopOf="@+id/distance_icon"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+
+                <TextView
+                    android:id="@+id/distanceTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginLeft="5dp"
+                    android:text="-- --"
+                    android:textColor="@color/grey_text"
+                    android:textSize="12sp"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toEndOf="@+id/distance_icon"
+                    mapbox:layout_constraintTop_toTopOf="@+id/distance_icon"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+
+                <TextView
+                    android:id="@+id/durationTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginLeft="5dp"
+                    android:text="-- --"
+                    android:textColor="@color/grey_text"
+                    android:textSize="12sp"
+                    mapbox:layout_constraintBottom_toBottomOf="parent"
+                    mapbox:layout_constraintEnd_toEndOf="parent"
+                    mapbox:layout_constraintHorizontal_bias="0.0"
+                    mapbox:layout_constraintStart_toEndOf="@+id/distance_icon2"
+                    mapbox:layout_constraintTop_toTopOf="@+id/distance_icon"
+                    mapbox:layout_constraintVertical_bias="0.0" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <ImageView
+            android:id="@+id/ShowMyLocation"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/gps_inactive"
+            mapbox:layout_constraintBottom_toTopOf="@+id/navigationBtn"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintHorizontal_bias="1.0"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent"
+            mapbox:layout_constraintVertical_bias="1.0" />
+
+        <ImageView
+            android:id="@+id/navigationBtn"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/get_my_direction"
+            android:visibility="visible"
+            mapbox:layout_constraintBottom_toTopOf="@+id/Identification"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintHorizontal_bias="1.0"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent"
+            mapbox:layout_constraintVertical_bias="1.0" />
+
+        <ImageView
+            android:id="@+id/mapConnection"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_marginStart="10dp"
             android:layout_marginLeft="10dp"
-            android:layout_marginTop="10dp"
-            android:text="Name:"
-            android:textColor="#9C9C9C"
+            android:layout_marginTop="34dp"
+            android:background="@drawable/internet_disconnected"
             mapbox:layout_constraintBottom_toBottomOf="parent"
             mapbox:layout_constraintEnd_toEndOf="parent"
             mapbox:layout_constraintHorizontal_bias="0.0"
@@ -196,111 +372,109 @@
             mapbox:layout_constraintTop_toTopOf="parent"
             mapbox:layout_constraintVertical_bias="0.0" />
 
-        <TextView
-            android:id="@+id/UI_contact"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:layout_marginEnd="130dp"
-            android:layout_marginRight="130dp"
-            android:text="Contact:"
-            android:textColor="#9C9C9C"
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="25dp"
+            android:layout_gravity="center"
+            android:paddingLeft="25dp"
+            android:paddingRight="25dp"
+            android:visibility="visible"
             mapbox:layout_constraintBottom_toBottomOf="parent"
             mapbox:layout_constraintEnd_toEndOf="parent"
-            mapbox:layout_constraintHorizontal_bias="0.0"
-            mapbox:layout_constraintStart_toStartOf="@+id/UI_AddressTv"
-            mapbox:layout_constraintTop_toBottomOf="@+id/UI_NameTv"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent"
+            mapbox:layout_constraintVertical_bias="0.32" />
+
+        <TextView
+            android:id="@+id/LoadingTV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible"
+            mapbox:layout_constraintBottom_toBottomOf="parent"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toBottomOf="@+id/progress_bar"
             mapbox:layout_constraintVertical_bias="0.0" />
+
+        <!--
+        <TextView
+            android:id="@+id/LatLng"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center|top"
+            android:layout_marginBottom="16dp"
+            android:background="#1f262a"
+            android:textAlignment="center"
+            android:textColor="#F8F7F7"
+            android:textColorHint="#FFFFFF"
+            android:textColorLink="#FFFFFF"
+            android:visibility="invisible"
+            mapbox:layout_constraintBottom_toBottomOf="parent"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent"
+            mapbox:layout_constraintVertical_bias="0.0" />-->
+
+        <TextView
+            android:id="@+id/OpenMobileData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Please open your mobile data to download the map."
+            android:textColor="#BFBEBE"
+            android:textSize="16sp"
+            mapbox:layout_constraintBottom_toBottomOf="parent"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent"
+            mapbox:layout_constraintVertical_bias="0.36" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <TextView
-        android:id="@+id/LoadingTV"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/address_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginBottom="627dp"
-        android:visibility="visible"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/button_blur_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone"
         mapbox:layout_constraintBottom_toBottomOf="parent"
         mapbox:layout_constraintEnd_toEndOf="parent"
         mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toBottomOf="@+id/progress_bar"
-        mapbox:layout_constraintVertical_bias="0.0" />
+        mapbox:layout_constraintTop_toTopOf="@+id/constraintLayout2"
+        mapbox:layout_constraintVertical_bias="0.0">
 
-    <Button
-        android:id="@+id/AssignBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:text="Assign rescuer"
-        android:layout_marginLeft="30dp"
-        android:translationY="15dp"
-        android:visibility="invisible"
-        mapbox:backgroundTint="@color/disableColor"
-        mapbox:layout_constraintBottom_toTopOf="@+id/Identification"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintHorizontal_bias="0.0"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:layout_constraintVertical_bias="1.0" />
+        <ImageView
+            android:id="@+id/address_marker"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:background="@drawable/small_marker_icon"
+            mapbox:layout_constraintBottom_toBottomOf="parent"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintHorizontal_bias="0.0"
+            mapbox:layout_constraintStart_toStartOf="parent"
+            mapbox:layout_constraintTop_toTopOf="parent" />
 
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="25dp"
-        android:layout_gravity="center"
-        android:paddingLeft="25dp"
-        android:paddingRight="25dp"
-        android:visibility="visible"
-        mapbox:layout_constraintBottom_toBottomOf="@+id/mapView"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:layout_constraintVertical_bias="0.31" />
+        <TextView
+            android:id="@+id/address_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginLeft="5dp"
+            android:text="-- Taliptip, Bulakan, Bulacan"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            mapbox:layout_constraintBottom_toBottomOf="parent"
+            mapbox:layout_constraintEnd_toEndOf="parent"
+            mapbox:layout_constraintStart_toEndOf="@+id/address_marker"
+            mapbox:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <Button
-        android:id="@+id/ShowMyLocation"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/gps_off"
-        android:textColor="@color/white"
-        mapbox:layout_constraintBottom_toTopOf="@+id/Identification"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintHorizontal_bias="1.0"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:layout_constraintVertical_bias="1.0" />
-
-    <TextView
-        android:id="@+id/LatLng"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center|top"
-        android:background="#32000000"
-        android:textAlignment="center"
-        android:textColor="#F8F7F7"
-        android:visibility="visible"
-        mapbox:layout_constraintBottom_toBottomOf="parent"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="@+id/mapView"
-        mapbox:layout_constraintVertical_bias="0.0" />
-
-    <Switch
-        android:id="@+id/hideMarkers"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp"
-        android:text="Hide"
-        android:textColor="#FFFFFF"
-        mapbox:layout_constraintBottom_toTopOf="@+id/ShowMyLocation"
-        mapbox:layout_constraintEnd_toEndOf="parent"
-        mapbox:layout_constraintHorizontal_bias="1.0"
-        mapbox:layout_constraintStart_toStartOf="parent"
-        mapbox:layout_constraintTop_toTopOf="parent"
-        mapbox:layout_constraintVertical_bias="1.0"
-        tools:ignore="UseSwitchCompatOrMaterialXml" />
-
+    //android:translationY="25dp"
 
 </androidx.constraintlayout.widget.ConstraintLayout>

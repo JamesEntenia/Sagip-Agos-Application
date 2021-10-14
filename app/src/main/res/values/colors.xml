@@ -2,15 +2,21 @@
 <resources>
     <color name="purple_200">#1A1A1A</color>
     <color name="purple_500">#262626</color>
-    <color name="purple_700">#333333</color>
-    <color name="teal_200">#B3B3B3</color>
-    <color name="teal_700">#CCCCCC</color>
+    <color name="purple_700">#00000000</color>
+    <color name="teal_200">#2D4380</color>
+    <color name="teal_700">#5681f7</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="grey_text">#797e81</color>
+
 
     <color name="adminColor">#43DCF0</color>
     <color name="residentColor">#EF4444</color>
     <color name="rescuerColor">#F0A843</color>
     <color name="warningColor">#F0D343</color>
     <color name="disableColor">#4C4C4C</color>
+
+    <color name="connectedColor">#37FF00</color>
+    <color name="disconnectedColor">#FF3333</color>
+
 </resources>

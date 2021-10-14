@@ -23,7 +23,11 @@ public class MainActivity extends AppCompatActivity {
 
 
         intentMap();
+
+        
     }
+
+
 
     public  void intentMap(){
 

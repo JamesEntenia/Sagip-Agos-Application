@@ -65,7 +65,7 @@ public class HomeActivity extends AppCompatActivity {
             public void onLocationChanged(Location location) {
                 longitude = location.getLongitude();
                 latitude = location.getLatitude();
-                LatLngTv.setText(latitude+"<>"+longitude);
+                connectionStatus.setText(latitude+"<>"+longitude);
 
             }
 
@@ -81,7 +81,7 @@ public class HomeActivity extends AppCompatActivity {
 
             @Override
             public void onProviderDisabled(String provider) {
-                LatLngTv.setText("Please turn on your GPS, for us to get realtime your location.");
+                connectionStatus.setText("Please turn on your GPS, for us to get realtime your location.");
 
             }
         };
