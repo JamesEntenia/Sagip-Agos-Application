@@ -1,14 +1,21 @@
 package com.example.weareperpared;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.database.Cursor;
 import android.media.Image;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -21,6 +28,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.List;
 import java.util.jar.Attributes;
 
 public class LoginActivity extends AppCompatActivity {
@@ -31,13 +39,19 @@ public class LoginActivity extends AppCompatActivity {
     FirebaseDatabase firebaseDatabase;
     DatabaseReference barangayRef,residentChild,residentRef,rescuerRef,adminRef;
 
-    boolean passwordIsCorrect = false;
+    DBHelper db;
+
+    boolean passwordIsCorrect = false,redirecting = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         getSupportActionBar().hide();
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 
         LoginBtn = findViewById(R.id.LoginBtn);
         LoginNumber = findViewById(R.id.LoginNumber);
@@ -52,10 +66,19 @@ public class LoginActivity extends AppCompatActivity {
         //rescuerRef = barangayRef.child("Rescuer");
         //adminRef = barangayRef.child("Admin");
 
+        //List<login_register_db> data = dataBaseHelper.getData();
+        //Toast.makeText(LoginActivity.this,dataBaseHelper.getData().toString(),Toast.LENGTH_LONG).show();
+
+        //delete
+        //login_register_db loginRegisterDb = (login_register_db) ;
+        //dataBaseHelper.deleteOne()
+
+
         checkIfFirebaseIsConnected();
         register();
         Login();
     }
+
 
     public void checkIfFirebaseIsConnected(){
 
@@ -87,7 +110,8 @@ public class LoginActivity extends AppCompatActivity {
         LoginRegisterBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(),RegisterActivity.class);
+
+                Intent intent = new Intent(LoginActivity.this,RegisterActivity.class);
                 startActivity(intent);
 
 
@@ -104,34 +128,54 @@ public class LoginActivity extends AppCompatActivity {
                 barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (!redirecting) {
 
 
-                        // for each loop that reads all children
-                        for (DataSnapshot dataSnapshot:snapshot.getChildren()){
-                            Users users = dataSnapshot.getValue(Users.class);
+                            // for each loop that reads all children
+                            for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                                Users users = dataSnapshot.getValue(Users.class);
 
-                            //check if password and number is correct
-                            if(users.cellphoneNum.equals(LoginNumber.getText().toString())&&users.password.equals(LoginPassword.getText().toString())){
+                                //check if password and number is correct
+                                if (users.cellphoneNum.equals(LoginNumber.getText().toString()) && users.password.equals(LoginPassword.getText().toString())) {
 
-                                passwordIsCorrect = true;
-                                Intent intent = new Intent(getApplicationContext(), Map_Activity.class);
-                                intent.putExtra("name",users.name);
-                                intent.putExtra("userType",users.userType);
-                                startActivity(intent);
+                                    passwordIsCorrect = true;
 
-                                LoginNumber.setText(null);
+                                    //INSERTM DATA TO SQLITE
+                                    db = new DBHelper(LoginActivity.this);
+
+                                    boolean inserted = db.insert(users.name,users.password,users.userType, users.cellphoneNum);
+
+                                    if(inserted){
+                                        //Toast.makeText(LoginActivity.this,"Logged in",Toast.LENGTH_LONG).show();
+                                    }
+
+                                    //INTENT
+                                    Intent intent = new Intent(LoginActivity.this, Map_Activity.class);
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    intent.putExtra("name", users.name);
+                                    intent.putExtra("userType", users.userType);
+                                    startActivity(intent);
+
+                                    //redirecting = true;
+
+                                    LoginNumber.setText(null);
+                                    LoginPassword.setText(null);
+
+
+                                    break;
+
+                                }
+                            }
+
+                            if (!passwordIsCorrect) {
+
+                                //redirecting = false;
+                                Toast.makeText(LoginActivity.this, "wrong password", Toast.LENGTH_LONG).show();
                                 LoginPassword.setText(null);
-                                break;
 
                             }
+                            passwordIsCorrect = false;
                         }
-
-                        if(!passwordIsCorrect){
-                            Toast.makeText(LoginActivity.this,"wrong password",Toast.LENGTH_LONG).show();
-                            LoginPassword.setText(null);
-
-                        }
-                        passwordIsCorrect = false;
                     }
 
                     @Override
@@ -139,11 +183,6 @@ public class LoginActivity extends AppCompatActivity {
 
                     }
                 });
-
-
-
-
-
 
 
 
@@ -187,4 +226,21 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
+
+
+    private long backPressedTime = 0L;
+    @Override
+    public void onBackPressed() {
+
+        if((backPressedTime+2000) > System.currentTimeMillis()){
+            super.onBackPressed();
+            return;
+        }else{
+            Toast.makeText(LoginActivity.this,"Press again to exit",Toast.LENGTH_SHORT).show();
+        }
+
+        backPressedTime = System.currentTimeMillis();
+
+    }
+
 }

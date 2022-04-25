@@ -2,13 +2,21 @@ package com.example.weareperpared;
 
 public class UserHelper {
 
-    String name, address, cellphoneNum, needRescue, Lat, Lng, password,userType,myRescuer,assignedTo,assignedNextTo,online;
+    String name, address, cellphoneNum, needRescue, Lat, Lng, password,userType,myRescuer,assignedTo,assignedNextTo,online,currentLocation,readNotif;
+
+    public String getCurrentLocation() {
+        return currentLocation;
+    }
+
+    public void setCurrentLocation(String currentLocation) {
+        this.currentLocation = currentLocation;
+    }
 
     public UserHelper(){}
 
 
 
-    public UserHelper(String name, String address, String cellphoneNum, String needRescue, String Lat, String Lng, String password, String userType, String myRescuer, String online){
+    public UserHelper(String name, String address, String cellphoneNum, String needRescue, String Lat, String Lng, String password, String userType, String myRescuer, String online,String currentLocation,String readNotif){
 
         this.name = name;
         this.address = address;
@@ -20,14 +28,15 @@ public class UserHelper {
         this.password = password;
         this.myRescuer = myRescuer;
         this.online = online;
-
+        this.currentLocation = currentLocation;
+        this.readNotif = readNotif;
 
     }
 
 
 
     public UserHelper(String name, String address, String cellphoneNum, String needRescue, String Lat, String Lng, String password,
-                      String userType, String myRescuer, String assignedTo, String assignedNextTo, String online){
+                      String userType, String myRescuer, String assignedTo, String assignedNextTo, String online,String readNotif){
 
         this.name = name;
         this.address = address;
@@ -41,11 +50,19 @@ public class UserHelper {
         this.assignedTo = assignedTo;
         this.assignedNextTo = assignedNextTo;
         this.online = online;
-
+        this.readNotif = readNotif;
 
     }
     public String getOnline() {
         return online;
+    }
+
+    public String getReadNotif() {
+        return readNotif;
+    }
+
+    public void setReadNotif(String readNotif) {
+        this.readNotif = readNotif;
     }
 
     public void setOnline(String online) {

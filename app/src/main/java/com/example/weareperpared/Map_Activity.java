@@ -5,47 +5,53 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.res.ResourcesCompat;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PointF;
-import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.icu.text.RelativeDateTimeFormatter;
-import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.os.PersistableBundle;
+import android.telephony.SmsManager;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
-import com.google.android.gms.common.config.GservicesValue;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
@@ -91,12 +97,9 @@ import com.mapbox.mapboxsdk.offline.OfflineRegion;
 import com.mapbox.mapboxsdk.offline.OfflineRegionError;
 import com.mapbox.mapboxsdk.offline.OfflineRegionStatus;
 import com.mapbox.mapboxsdk.offline.OfflineTilePyramidRegionDefinition;
-import com.mapbox.mapboxsdk.style.layers.Layer;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
-import com.mapbox.services.android.navigation.ui.v5.route.OnRouteSelectionChangeListener;
-import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.json.JSONObject;
@@ -104,24 +107,25 @@ import org.json.JSONObject;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import eightbitlab.com.blurview.BlurView;
-import eightbitlab.com.blurview.RenderScriptBlur;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import timber.log.Timber;
 
-import static android.graphics.Color.*;
-import static com.example.weareperpared.R.drawable.admin;
-import static com.example.weareperpared.R.drawable.rescuer;
-import static com.example.weareperpared.R.drawable.resident;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
 
-public class Map_Activity extends AppCompatActivity implements TaskFragment.TaskCallbacks, OnMapReadyCallback, PermissionsListener {
+public class Map_Activity extends AppCompatActivity implements TaskFragment.TaskCallbacks, OnMapReadyCallback, PermissionsListener, PopupMenu.OnMenuItemClickListener {
+
+
+    //REMOVE AREA
+
+
+    ValueEventListener onGoingRescuer,fmdLisnr,assignReq,myrescuerLsnr,needrescueLsnr,latLsnr,residentmyrescuerLsnr,assigedtoLsnr;
+    ChildEventListener newChildLsnr;
+
 
 //LocationManager
     private long DEFAULT_MAX_WAIT_TIME = 1000L;
@@ -137,11 +141,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     private String nameOfAssignedResident_forRescuer;
     private boolean rescuerIsAvailable = true;
 
-    private ConstraintLayout identification,address_container;
-    private ImageView connectionStatus;
-    private ImageView ShowMyLocation, DoneBtn,navigationBtn;
-    private TextView  LoadingTV, OpenMobileData;
-    private TextView UI_NameTV, UI_AddressTv, UI_ContactTv, UI_myRescuerTv, UI_myRescuer,distanceTv,durationTv,speedTv;
+    private ConstraintLayout identification,address_container,contact_container;
+    private Button acceptBtn,declineBtn,yesBtn,noBtn,yes_cancleBtn,no_cancleBtn,done_yesBtn,done_noBtn,menu,exitBtn;
+    private ImageView connectionStatus,addressMarker,user_icon,contact_icon,location_icon;
+    private ImageView ShowMyLocation, DoneBtn,navigationBtn,sosBtn;
+    private TextView  LoadingTV, OpenMobileData,serverRequestMsg,levelTv,onTheWay,searchingGPS;
+    private TextView UI_NameTV, UI_AddressTv, UI_ContactTv, UI_myRescuerTv, UI_myRescuer,distanceTv,durationTv,speedTv,UIContact;
+    private TextView profile_name,profile_contact,profile_location,profile_lbl;
+    private Dialog serverReqDialog,sosDialogBox,cancleSosDialogBox,doneBtnDialogBox,profileDialogBox;
 
     private String resident_str = "Resident";
     private String rescuer_str = "Rescuer";
@@ -161,15 +168,17 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     String styleMode = "mapbox://styles/jempot23/cktv4tsp61xi117s8p3nta9qx";
     boolean showComponentLocationClicked = false, hide = false;
     boolean GPSisOn;
-    boolean OnStart = true;
-    boolean locationIsAccurate = false;
+    boolean OnStart = true,sosReqOngoing = false;
+    boolean locationIsAccurate = false,iHaveRescuer = false;
+    boolean sendingSOSThroughSMS = false;
+    int gpsAccuracy = 25;
 
     // JSON encoding/decoding
     public static final String JSON_CHARSET = "UTF-8";
     public static final String JSON_FIELD_REGION_NAME = "FIELD_REGION_NAME";
     public static final String RegionName = "Pulong Gubat";
 
-    double LatNorth = 14.868179, LatSouth = 14.822714, LngWest = 120.884195, LngEast = 120.927998;
+    double LatNorth = 14.768225296252517, LatSouth = 14.771814117461439, LngWest = 120.89473438372976, LngEast = 120.89468058115267;
 
     //Screen Rotation
     private static final String TAG_TASK_FRAGMENT = "task_fragment";
@@ -200,7 +209,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     SymbolLayer warningSymbolLayer;
     GeoJsonSource warningMapSource;
 
-    List<Feature> residentToBeRescue = new ArrayList<>();
+    Object[] residentToBeRescue = new Object[6],rescuerForThisUser = new Object[6];
 
     int needRescueCounter = 0, rescuerCounter = 0, adminCounter = 0;
 //--------------------------------------------------------------------------------------------------
@@ -208,7 +217,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     //FIREBASE
     FirebaseDatabase firebaseDatabase;
-    DatabaseReference barangayRef;
+    DatabaseReference barangayRef,notificationRef,fmdRef;
     String Username, ThisUserType;
 
 
@@ -216,11 +225,6 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     boolean assigning = false, activityStop = false;
     double residentLat, residentLng, rescuerLat, rescuerLng;
 
-    //BLUR
-    BlurView blurView;
-
-    //COLORS RESOURCES
-    int residentColor, rescuerColor, adminColor, disableColor, warningColor;
 
     private LocationChangeListeningActivityLocationCallback callback = new LocationChangeListeningActivityLocationCallback(this);
 
@@ -248,6 +252,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         firebaseDatabase = FirebaseDatabase.getInstance();
         barangayRef = firebaseDatabase.getReference("Barangay");
+        notificationRef = firebaseDatabase.getReference("Notification");
+        fmdRef = firebaseDatabase.getReference("FloodMonitoringDevice");
         Username = getIntent().getStringExtra(name_str);
         ThisUserType = getIntent().getStringExtra(userType_str);
 
@@ -260,24 +266,28 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         UI_NameTV = findViewById(R.id.UI_NameTv);
         UI_AddressTv = findViewById(R.id.address_tv);
         UI_ContactTv = findViewById(R.id.UI_ContactTv);
+        UIContact = findViewById(R.id.UI_contact);
         UI_myRescuerTv = findViewById(R.id.UI_myRescuerTv);
         connectionStatus = findViewById(R.id.mapConnection);
         distanceTv = findViewById(R.id.distanceTv);
         durationTv = findViewById(R.id.durationTv);
         speedTv = findViewById(R.id.speedTv);
-
+        addressMarker = findViewById(R.id.address_marker);
+        searchingGPS = findViewById(R.id.searchingGPS);
         UI_myRescuer = findViewById(R.id.UI_myRescuer);
         DoneBtn = findViewById(R.id.DoneBtn);
         navigationBtn = findViewById(R.id.navigationBtn);
-
+        menu = findViewById(R.id.menubar);
+        levelTv= findViewById(R.id.levelTv);
+        sosBtn = findViewById(R.id.sosBtn);
+        onTheWay = findViewById(R.id.onTheWay);
         identification = findViewById(R.id.Identification);
         address_container = findViewById(R.id.address_container);
+        contact_container = findViewById(R.id.contact);
 
-        residentColor = ResourcesCompat.getColor(getResources(), R.color.residentColor, null);
-        rescuerColor = ResourcesCompat.getColor(getResources(), R.color.rescuerColor, null);
-        adminColor = ResourcesCompat.getColor(getResources(), R.color.adminColor, null);
-        disableColor = ResourcesCompat.getColor(getResources(), R.color.disableColor, null);
-        warningColor = ResourcesCompat.getColor(getResources(), R.color.warningColor, null);
+
+
+
 
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
@@ -286,30 +296,378 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         locationOfAssignedResident_forRescuer = new Location(String.valueOf(new LatLng(0, 0)));
 
 
-        //blur();
+
+//blur();
         handlingOrientation();
+
         showMyLocation();
         doneButton();
+        sos_btn();
         navigation_btn();
+        setMenu();
+        setFMD();
+
+
         //hideUserIdentification();
-        forResident();
+
         checkIfFirebaseIsConnected();
+        newChild();
+        setProfile();
+        notification();
+
+        if(ThisUserType.equals(rescuer_str)){
+            barangayRef.child(Username).child("needRescue").setValue("yes");
+            serverRequestDialogBox();
+            assignRequest();
+            setdoneBtnDialogBox();
+            ongoingRescue();
+            menu.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(243,172,91)));
+            speedTv.setTextColor(Color.parseColor(("#f3ac5b")));
+            UI_ContactTv.setTextColor(Color.parseColor(("#f3ac5b")));
+            levelTv.setTextColor(Color.parseColor(("#f3ac5b")));
+            UIContact.setBackgroundResource(R.drawable.contact_icon_rescuer);//Flood
+            onTheWay.setBackgroundResource(R.drawable.edittext_background_rescuer);
+
+
+        }else if(ThisUserType.equals(resident_str)){
+
+
+            forResident();
+            setsosDialogBox();
+            setcancleSosDialogBox();
+        }
+
+        //checkMsgPermission();
     }
     //______________________________________________________________________________________________
 
+    public void checkMsgPermission(){
+        if (ContextCompat.checkSelfPermission( Map_Activity.this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED){
+            checkSOS();
+        }else{
+            ActivityCompat.requestPermissions( Map_Activity.this
+                    ,new String[]{Manifest.permission.SEND_SMS},100);
+        }
+    }
 
+    public void checkSOS(){
+
+        if(sendingSOSThroughSMS){
+            if(locationIsAccurate){
+                sendMsg("09760793371","sos<>"+currentLocation.getLongitude()+"<>"+currentLocation.getLatitude());
+            }else{//location waiting
+
+            }
+        }
+    }
+    private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 0;
+
+    public void sendMsg(String phoneNo,String msg){
+
+        SmsManager smsManager = SmsManager.getDefault();
+
+        smsManager.sendTextMessage(phoneNo,null,msg,null,null);
+    }
+
+
+    public void notification(){
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            NotificationChannel channel = new NotificationChannel("water level notification","water level notification",NotificationManager.IMPORTANCE_HIGH);
+            NotificationManager manager  = getSystemService(NotificationManager.class);
+
+            manager.createNotificationChannel(channel);
+        }
+
+        //NOTIFICATION: LEVEL LISTENER
+        notificationRef.child("level").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot notif_Lvl_snapshot) {
+                String notifLvl = notif_Lvl_snapshot.getValue(String.class);
+
+        // READ USER READNOTIF ONCE
+        barangayRef.child(Username).child("readNotif").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot readNotif_snapshot) {
+                String readNotif = readNotif_snapshot.getValue(String.class);
+
+                //IF NOTIFICATION IS NOT EQUAL TO WHAT USER'S READ THEN SHOW NOTIFICATION
+                if(!notifLvl.equals(readNotif)){
+
+                    barangayRef.child(Username+"/readNotif").setValue(notifLvl);
+
+                    // READ NOTIFICATION ONCE
+                    notificationRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot notification_snapshot) {
+                            String time = notification_snapshot.child("time").getValue(String.class);
+                            Log.i("notif",time);
+                            String message = notifLvl+" level as of "+time;
+
+                            NotificationCompat.Builder builder = new NotificationCompat.Builder(Map_Activity.this,"water level notification")
+                                    .setSmallIcon(R.drawable.app_logo)
+                                    .setContentTitle("Sagip Agos: Water Level")
+                                    .setContentText(message)
+                                    .setAutoCancel(true);
+                            //Vibration
+                            builder.setVibrate(new long[] { 0,1000,0,1000});
+
+                            //Ton
+                            Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                            builder.setSound(alarmSound);
+                            NotificationManagerCompat managerCompat = NotificationManagerCompat.from(Map_Activity.this);
+                            managerCompat.notify(1,builder.build());
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+      /*  barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                for (DataSnapshot user : snapshot.getChildren()){
+                   barangayRef.child(user.getKey()).child("readNotif").setValue("Normal");
+                    Log.i("names",user.getKey());
+                }
+
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });*/
+    }
+
+    public void setProfile(){
+
+        barangayRef.child(Username).addListenerForSingleValueEvent(new ValueEventListener() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String name = snapshot.child("name").getValue(String.class);
+                String contact = snapshot.child("cellphoneNum").getValue(String.class);
+                String address = snapshot.child("address").getValue(String.class);
+
+                setProfileDialogbox(name,address,contact);
+
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+public void setCurrentLocation(DataSnapshot snapshot){
+        snapshot.child("currentLocation").getRef().addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot locationSnapshot) {
+                String currentLocation = locationSnapshot.getValue(String.class);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+}
+
+
+
+    //FOR RESCUER ONGOING RESCUE OPERATION
+    public void ongoingRescue(){
+        onGoingRescuer = barangayRef.child(Username).child("assignedTo").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String assignedTo = snapshot.getValue(String.class);
+                //Toast.makeText(Map_Activity.this, assignedTo, Toast.LENGTH_SHORT).show();
+                if (!assignedTo.equals("Not assigned yet")) {
+                    onTheWay.setText("  Ongoing rescue operation  ");
+                    onTheWay.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    //SET UP FLOOD MONITORING DEVICE LISTENER
+    public void setFMD(){
+
+        fmdLisnr = fmdRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                    String level = snapshot.child("level").getValue(String.class);
+                    String location = snapshot.child("location").getValue(String.class);
+                    Double lat = Double.parseDouble(snapshot.child("lat").getValue(String.class));
+                    Double lng = Double.parseDouble(snapshot.child("lng").getValue(String.class));
+
+                    try {
+                        //SYMBOL COORDINATES SAMPLE
+                        warningFeatureList.set(0, Feature.fromGeometry(
+                                Point.fromLngLat(lng, lat)));
+                        warningFeatureList.get(0).addStringProperty(name_str, "Flood Warning");
+                        warningFeatureList.get(0).addStringProperty("level", level);
+                        warningFeatureList.get(0).addStringProperty("location", location);
+                        warningFeatureList.get(0).addNumberProperty("Lat", lat);
+                        warningFeatureList.get(0).addNumberProperty("Lng", lng);
+                        if(level.equals("Normal")){
+                            levelTv.setTextColor(Color.parseColor(("#00d71d")));
+                        }else if(level.equals("Alert")){
+                            levelTv.setTextColor(Color.parseColor(("#5681f7")));
+                        }
+                        else if(level.equals("Warning")){
+                            levelTv.setTextColor(Color.parseColor(("#f3ac5b")));
+                        }
+                        else if(level.equals("Critical")){
+                            levelTv.setTextColor(Color.parseColor(("#ff00ee")));
+                        }
+                        else if(level.equals("Danger")){
+                            levelTv.setTextColor(Color.parseColor(("#ff4949")));
+                        }
+                        levelTv.setText(level);
+                        warningSymbol();
+                    } catch (Exception e) {
+
+                        warningFeatureList.add(Feature.fromGeometry(
+                                Point.fromLngLat(lng, lat)));
+                        warningFeatureList.get(0).addStringProperty(name_str, "Flood Warning");
+                        warningFeatureList.get(0).addStringProperty("level", level);
+                        warningFeatureList.get(0).addStringProperty("location", location);
+                        warningFeatureList.get(0).addNumberProperty("Lat", lat);
+                        warningFeatureList.get(0).addNumberProperty("Lng", lng);
+                        if(level.equals("Normal")){
+                            levelTv.setTextColor(Color.parseColor(("#00d71d")));
+                        }else if(level.equals("Alert")){
+                            levelTv.setTextColor(Color.parseColor(("#5681f7")));
+                        }
+                        else if(level.equals("Warning")){
+                            levelTv.setTextColor(Color.parseColor(("#f3ac5b")));
+                        }
+                        else if(level.equals("Critical")){
+                            levelTv.setTextColor(Color.parseColor(("#ff00ee")));
+                        }
+                        else if(level.equals("Danger")){
+                            levelTv.setTextColor(Color.parseColor(("#ff4949")));
+                        }
+                        levelTv.setText(level);
+                        warningSymbol();
+                    }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+
+    }
+
+
+
+
+
+    /*
+    public void newUserHandler{
+    }
+     */
 
 
     public void forResident() {
+
         if (ThisUserType.equals(resident_str)) {
-            barangayRef.child(Username).child("myRescuer").addValueEventListener(new ValueEventListener() {
+
+
+            //sosBtn.setVisibility(View.VISIBLE);
+
+            barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
 
-                    String myRescuer = snapshot.getValue(String.class);
-                    if (!myRescuer.equals(no_rescuer_assigned)) {
-                        read_RescueMe(myRescuer);
-                    }
+/*
+                        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+
+                            if (dataSnapshot.child(userType_str).getValue(String.class).equals(rescuer_str)) {
+                                read_RescueMe(dataSnapshot.getRef().getKey());
+                            }
+
+                        }
+
+ */
+                        myrescuerLsnr = snapshot.child(Username).child("myRescuer").getRef().addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot myRescuerSnapshot) {
+
+                                //Toast.makeText(Map_Activity.this, myRescuerSnapshot.getValue(String.class), Toast.LENGTH_LONG).show();
+                                //If this user has myRescuer remove sos Button
+
+
+                                //delete account pag may error
+
+                                    if (!myRescuerSnapshot.getValue(String.class).equals("No rescuer assigned")) {
+                                        iHaveRescuer = true;
+                                        sosBtn.setVisibility(View.GONE);
+                                        onTheWay.setVisibility(View.VISIBLE);
+                                        //Toast.makeText(Map_Activity.this,m.getValue(String.class),Toast.LENGTH_SHORT).show();
+                                        setRescuerInfoForThisUser(myRescuerSnapshot.getValue(String.class));
+
+                                    } else {
+                                        iHaveRescuer = false;
+                                        sosBtn.setVisibility(View.VISIBLE);
+                                        onTheWay.setVisibility(View.GONE);
+
+                                        //myRescuerSnapshot.getRef().getParent().child("needRescue").setValue("no");
+
+                                        if (snapshot.child(Username).child("needRescue").getValue(String.class).equals("yes")) {
+                                            sosReqOngoing = true;
+                                            sosBtn.setBackgroundResource(R.drawable.canclebtn);
+                                        } else {
+                                            sosReqOngoing = false;
+                                            sosBtn.setBackgroundResource(R.drawable.sosbtn);
+                                        }
+
+
+                                    }
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+
 
                 }
 
@@ -319,7 +677,37 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 }
             });
         }
+
     }
+
+    public void setRescuerInfoForThisUser(String name){
+
+        barangayRef.child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                rescuerForThisUser[0] = name;
+                rescuerForThisUser[1] = snapshot.child("lat").getValue(Double.class);
+                rescuerForThisUser[2] = snapshot.child("lng").getValue(Double.class);
+                rescuerForThisUser[3] = snapshot.child("address").getValue(String.class);
+                rescuerForThisUser[4] = snapshot.child("cellphoneNum").getValue(String.class);
+                rescuerForThisUser[5] = snapshot.child("assignedTo").getValue(String.class);
+
+                //Toast.makeText(Map_Activity.this,rescuerForThisUser[0]+"_\n"+rescuerForThisUser[1]+"_\n"+rescuerForThisUser[2]+"_\n"+rescuerForThisUser[5]+"_\n",Toast.LENGTH_SHORT).show();
+
+                if(locationIsAccurate) {
+                    Point destination = Point.fromLngLat((Double)rescuerForThisUser[2], (Double)rescuerForThisUser[1]);
+                    Point origin = Point.fromLngLat(currentLocation.getLongitude(), currentLocation.getLatitude());
+                    getRoute(origin, destination);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
 
     /*
     public void hideUserIdentification() {
@@ -332,33 +720,47 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     //___________________________________FIREBASE DATA READING______________________________________
 
-
-    //-----Update Listener for all user location----------------------------------------------------
-    public void read_RescueMe(String myRescuer) {
-
-        //THIS WILL READ ALL NAMES OF USER IN BARANGAY
-        barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
-
+    public void newChild(){
+        newChildLsnr = barangayRef.addChildEventListener(new ChildEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
 
 
-                //LOOP THAT WILL READ ALL NAMES IN BARANGAY
-                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {//Users users = dataSnapshot.getValue(Users.class);
+
+                if (ThisUserType.equals(rescuer_str)) {
+                    read_RescueMe(snapshot);
 
 
-                    //ShowMyLocation.setText(dataSnapshot.getRef().getKey());
-                    if (ThisUserType.equals(rescuer_str) || ThisUserType.equals(admin_str) || (dataSnapshot.getRef().getKey().equals(myRescuer))) {
+                    if(snapshot.child("userType").getValue(String.class).equals(rescuer_str))
+                        setCurrentLocation(snapshot);
 
+
+                } else if (ThisUserType.equals(resident_str)) {
+
+                    if(snapshot.child("userType").getValue(String.class).equals(rescuer_str)){
+                        read_RescueMe(snapshot);
+                    }
+
+                }
+
+
+            }@Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}@Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {}@Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {}@Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+    //-----Update Listener for all user location----------------------------------------------------
+    public void read_RescueMe(DataSnapshot dataSnapshot) {
 
                         //READ ALL(NEED RESCUE) OF USER AND ADD EVERY CHANGE LISTENER
-                        dataSnapshot.child("needRescue").getRef().addValueEventListener(new ValueEventListener() {
+                        needrescueLsnr = dataSnapshot.child("needRescue").getRef().addValueEventListener(new ValueEventListener() {
                             @SuppressLint("SetTextI18n")
                             @Override
                             public void onDataChange(@NonNull DataSnapshot needRescuesnapshot) {
 
-
-                                //IF NEED RESCUE OF THE USE IS EQUAL TO YES THEN THIS PLAY ITS LOCATION FEATURE
+                                 //IF NEED RESCUE OF THE USE IS EQUAL TO YES THEN THIS PLAY ITS LOCATION FEATURE
                                 if (needRescuesnapshot.getValue(String.class).equals("yes")) {
 
 
@@ -370,7 +772,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
                                         //SET CHANGE LISTENER FOR ALL USER THAT NEED RESCUE
-                                        needRescuesnapshot.getRef().getParent().child("lat").addValueEventListener(new ValueEventListener() {
+                                        latLsnr = needRescuesnapshot.getRef().getParent().child("lat").addValueEventListener(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
@@ -403,17 +805,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             }
                         });
 
-                    }
-                }
 
 
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
     }
 
 
@@ -435,6 +828,16 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     addGeoJson(Lng, Lat, name, userType, address, cellphoneNum);
 
                 } catch (Exception e) {
+                    if(Username.equals(snapshot.child("myRescuer").getValue(String.class))){
+
+                        residentToBeRescue[0] = name;
+                        residentToBeRescue[1] = 0.0;
+                        residentToBeRescue[2] = 0.0;
+                        residentToBeRescue[3] = snapshot.child("address").getValue(String.class);
+                        residentToBeRescue[4] = snapshot.child("cellphoneNum").getValue(String.class);
+                        residentToBeRescue[5] = snapshot.child("myRescuer").getValue(String.class);
+
+                    }
                 }
 
             }
@@ -458,6 +861,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 residentFeatureList.get(needRescueCounter).addStringProperty(name_str, name);
                 residentFeatureList.get(needRescueCounter).addStringProperty("cellphoneNumber", cellphoneNum);
                 residentFeatureList.get(needRescueCounter).addStringProperty("address", address);
+                checkCurrentLocation(name);
                 residentFeatureList.get(needRescueCounter).addStringProperty(userType_str, userType);
                 residentFeatureList.get(needRescueCounter).addNumberProperty("Lng", Lng);
                 residentFeatureList.get(needRescueCounter).addNumberProperty("Lat", Lat);
@@ -465,6 +869,17 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 //onlineListener(name);
                 residentSymbol();
                 needRescueCounter++;
+
+                if(name.equals(residentToBeRescue[0].toString())){
+                    residentToBeRescue[1] = Lat;
+                    residentToBeRescue[2] = Lng;
+                    if(ThisUserType.equals(rescuer_str))
+                    {
+                        addressMarker.setBackgroundResource(R.drawable.small_marker_icon_rescuer);
+                    }else{
+                        addressMarker.setBackgroundResource(R.drawable.small_marker_icon);
+                    }
+                }
             } else if (userType.equals(rescuer_str)) {
 
 
@@ -514,46 +929,49 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
-                String userType = snapshot.child(userType_str).getValue(String.class);
+                if (snapshot.child("needRescue").getValue(String.class).equals("yes")) {
+                    //Toast.makeText(Map_Activity.this,"test",Toast.LENGTH_LONG).show();
+                    String userType = snapshot.child(userType_str).getValue(String.class);
 
-                List<Feature> userFeatureList = new ArrayList<>();
+                    List<Feature> userFeatureList = new ArrayList<>();
 
-                if (userType.equals(resident_str)) {
-                    userFeatureList = residentFeatureList;
+                    if (userType.equals(resident_str)) {
+                        userFeatureList = residentFeatureList;
 
-                } else if (userType.equals(rescuer_str)) {
-                    userFeatureList = rescuerFeatureList;
-
-
-                } else if (userType.equals(admin_str)) {
-
-                    userFeatureList = adminFeatureList;
-                }
+                    } else if (userType.equals(rescuer_str)) {
+                        userFeatureList = rescuerFeatureList;
 
 
-                boolean emptyLatLng = true;
+                    } else if (userType.equals(admin_str)) {
 
-                //CHECK ALL NAMES IN PROPERTIES TO GET WHO OWN THE LOCATION CHANGE
-                for (int index = 0; index < userFeatureList.size(); index++) {
-
-                    String listName = userFeatureList.get(index).getStringProperty(name_str);
-
-                    //IF FEATURE NAME IS EQUALS TO PARENT NAME OF THE CHANGED LOCATION
-
-
-                    if (ParentName.equals(listName)) {
-                        CheckAgainIfNeedRescue(ParentName, index);
-                        emptyLatLng = false;
-                        break;
+                        userFeatureList = adminFeatureList;
                     }
+
+
+                    boolean emptyLatLng = true;
+
+                    //CHECK ALL NAMES IN PROPERTIES TO GET WHO OWN THE LOCATION CHANGE
+                    for (int index = 0; index < userFeatureList.size(); index++) {
+
+                        String listName = userFeatureList.get(index).getStringProperty(name_str);
+
+                        //IF FEATURE NAME IS EQUALS TO PARENT NAME OF THE CHANGED LOCATION
+
+
+                        if (ParentName.equals(listName)) {
+                            CheckAgainIfNeedRescue(ParentName, index);
+                            emptyLatLng = false;
+                            break;
+                        }
+                    }
+
+
+                    //if latlng of the user is empty. if latlng id still empty try catch of addnewuser will handle it
+                    if (emptyLatLng) {
+                        addNewUser(ParentName);
+                    }
+
                 }
-
-
-                //if latlng of the user is empty. if latlng id still empty try catch of addnewuser will handle it
-                if (emptyLatLng) {
-                    addNewUser(ParentName);
-                }
-
             }
 
             @Override
@@ -614,6 +1032,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         residentFeatureList.get(index).addStringProperty(name_str, name);
                         residentFeatureList.get(index).addStringProperty("cellphoneNumber", cellphoneNumber);
                         residentFeatureList.get(index).addStringProperty("address", address);
+                        checkCurrentLocation(name);
                         residentFeatureList.get(index).addStringProperty(userType_str, userType);
                         residentFeatureList.get(index).addNumberProperty("Lng", Lng);
                         residentFeatureList.get(index).addNumberProperty("Lat", Lat);
@@ -621,13 +1040,17 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         //onlineListener(name);
                         residentSymbol();
 
-                        if (name.equals(nameOfAssignedResident_forRescuer)) {
-                            locationOfAssignedResident_forRescuer.setLatitude(Lat);
-                            locationOfAssignedResident_forRescuer.setLongitude(Lng);
+                        if (name.equals(residentToBeRescue[0].toString())) {
+                            //locationOfAssignedResident_forRescuer.setLatitude(Lat);
+                            //locationOfAssignedResident_forRescuer.setLongitude(Lng)
+
+                            residentToBeRescue[1] = Lat;
+                            residentToBeRescue[2] = Lng;
+
 
                             if (!rescuerIsAvailable) {
-                                Point destination = Point.fromLngLat(locationOfAssignedResident_forRescuer.getLongitude(),
-                                        locationOfAssignedResident_forRescuer.getLatitude());
+                                Point destination = Point.fromLngLat((Double) residentToBeRescue[2],
+                                        (Double) residentToBeRescue[1]);
                                 Point origin = Point.fromLngLat(currentLocation.getLongitude(),
                                         currentLocation.getLatitude());
 
@@ -668,6 +1091,40 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                     }
                 } catch (Exception e) {
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    public void checkCurrentLocation(String name){
+        barangayRef.child(name).child("currentLocation").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String currentLocation = snapshot.getValue(String.class);
+                if(!currentLocation.equals("No current location")){
+
+                    for (int index = 0; index<residentFeatureList.size();index++) {
+
+                        String residentName = snapshot.getRef().getParent().getKey();
+                        if(residentFeatureList.get(index).getStringProperty(name_str).equals(residentName)){
+                            residentFeatureList.get(index).addStringProperty("address",currentLocation);
+                            if(UI_NameTV.getText().toString().equals(residentName)){
+                                UI_AddressTv.setText(currentLocation);
+                            }
+                            if(name.equals(residentToBeRescue[0])){
+                                residentToBeRescue[3] = currentLocation;
+                            }
+                            break;
+                        }
+                    }
+
+                }else{
+                   //if current location change to no current location while listening
                 }
             }
 
@@ -719,10 +1176,11 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         if (purpose.equals("remove")) {
 
                             if (userType.equals(resident_str)) {
+                                //Toast.makeText(Map_Activity.this,residentFeatureList.get(index).getStringProperty("name")+"1",Toast.LENGTH_SHORT).show();
                                 residentFeatureList.remove(index);
+                                //Toast.makeText(Map_Activity.this,residentFeatureList.get(index).getStringProperty("name")+"1",Toast.LENGTH_SHORT).show();
                                 residentSymbol();
                                 needRescueCounter--;
-                                break;
                             } else if (userType.equals(rescuer_str)) {
                                 rescuerFeatureList.remove(index);
                                 rescuerSymbol();
@@ -743,14 +1201,57 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                             //THIS IS FOR SETTING VALUE OF MY RESCUER INTO FEATURE LIST
                         } else if (purpose.equals("set_myRescuer")) {
+
                             if (userType.equals(resident_str)) {
+
+
+
+                                if(Username.equals(myRescuer)) {
+                                    //add
+                                    Double Lat = (Double) residentFeatureList.get(index).getNumberProperty("Lat");
+                                    Double Lng = (Double) residentFeatureList.get(index).getNumberProperty("Lng");
+
+
+                                    //get
+                                    String cellphoneNumber = residentFeatureList.get(index).getStringProperty("cellphoneNumber");
+                                    String address = residentFeatureList.get(index).getStringProperty("address");
+                                    String residentName = residentFeatureList.get(index).getStringProperty(name_str);
+                                    String thisMyRescuer = residentFeatureList.get(index).getStringProperty("myRescuer");
+
+                                    //Toast.makeText(Map_Activity.this,residentName+"-"+myRescuer,Toast.LENGTH_SHORT).show();
+                                    //resident to be rescue only
+                                    residentToBeRescue[0] = residentName;
+                                    residentToBeRescue[1] = Lat;
+                                    residentToBeRescue[2] = Lng;
+                                    residentToBeRescue[3] = address;
+                                    residentToBeRescue[4] = cellphoneNumber;
+                                    residentToBeRescue[5] = myRescuer;
+
+                                    if(locationIsAccurate) {
+                                        Point destination = Point.fromLngLat(Lng, Lat);
+                                        Point origin = Point.fromLngLat(currentLocation.getLongitude(), currentLocation.getLatitude());
+                                        getRoute(origin, destination);
+                                    }
+                                }
+
+
+                                /*
+                                //resident to be rescue only
+                                residentToBeRescue[0] = residentFeatureList.get(index).getStringProperty("name");
+                                residentToBeRescue[1] = residentFeatureList.get(index).getStringProperty("Lat");
+                                residentToBeRescue[2] = residentFeatureList.get(index).getStringProperty("Lng");
+                                residentToBeRescue[3] = residentFeatureList.get(index).getStringProperty("address");
+                                residentToBeRescue[4] = residentFeatureList.get(index).getStringProperty("cellphoneNumber");
+                                residentToBeRescue[5] = residentFeatureList.get(index).getStringProperty("myRescuer");
+
+                                 */
 
                                 residentFeatureList.get(index).addStringProperty("myRescuer", myRescuer);
                                 residentSymbol();
                                 if (name.equals(UI_NameTV.getText().toString())) {
                                     UI_myRescuerTv.setText(myRescuer);
                                     if (ThisUserType.equals(admin_str)) {
-                                        setUpDoneBtnAdmin(residentColor);
+                                        //setUpDoneBtnAdmin(residentColor);
                                     }
                                 }
                                 break;
@@ -788,7 +1289,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             if (name.equals(UI_NameTV.getText().toString())) {
                                 UI_myRescuerTv.setText(assignedTo);
                                 if (ThisUserType.equals(admin_str)) {
-                                    setUpDoneBtnAdmin(rescuerColor);
+                                    //setUpDoneBtnAdmin(rescuerColor);
                                 }
                             }
 
@@ -848,10 +1349,11 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     //-----THIS WILL SET CHANGE LISTENER FOR MY RESCUER---------------------------------------------
     public void myRescuerListener(String name) {
-        barangayRef.child(name).child("myRescuer").addValueEventListener(new ValueEventListener() {
+        residentmyrescuerLsnr = barangayRef.child(name).child("myRescuer").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 featureListScanner(name, "set_myRescuer");
+
             }
 
             @Override
@@ -879,14 +1381,15 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
  */
 
     public void assignedToListener(String name) {
-        barangayRef.child(name).child(assignedTo_str).addValueEventListener(new ValueEventListener() {
+        assigedtoLsnr = barangayRef.child(name).child(assignedTo_str).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 featureListScanner(name, "set_assignedTo");
 
-
                 if (!snapshot.getValue(String.class).equals("Not assigned yet")) {
                     getResidentLocationForRescuer(name);
+
+                    set_resident_to_be_rescue(snapshot.getValue(String.class));
                 }
 
             }
@@ -897,59 +1400,108 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             }
         });
 
-/*
-        barangayRef.child(name).child("assignedNextTo").addValueEventListener(new ValueEventListener() {
+    }
+
+    public void set_resident_to_be_rescue(String name){
+
+        barangayRef.child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                featureListScanner(name,"set_assignedNextTo");
+
+                try {
+                    residentToBeRescue[0] = name;
+                    residentToBeRescue[1] = snapshot.child("lat").getValue(Double.class);
+                    residentToBeRescue[2] = snapshot.child("lng").getValue(Double.class);
+                    residentToBeRescue[3] = snapshot.child("address").getValue(String.class);
+                    residentToBeRescue[4] = snapshot.child("cellphoneNum").getValue(String.class);
+                    residentToBeRescue[5] = snapshot.child("myRescuer").getValue(String.class);
+                }catch (Exception e){
+                    residentToBeRescue[0] = name;
+                    residentToBeRescue[1] = 0.0;
+                    residentToBeRescue[2] = 0.0;
+                    residentToBeRescue[3] = snapshot.child("address").getValue(String.class);
+                    residentToBeRescue[4] = snapshot.child("cellphoneNum").getValue(String.class);
+                    residentToBeRescue[5] = snapshot.child("myRescuer").getValue(String.class);
+                }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
 
             }
-        });*/
+        });
+
     }
     //----------------------------------------------------------------------------------------------
 
     public void getResidentLocationForRescuer(String name) {
 
 
-        if (name.equals(Username)) {
+            if(ThisUserType.equals(rescuer_str)) {
+                try {
+                    if ((double) residentToBeRescue[1] == 0.0) {
+                        rescuerIsAvailable = false;
+                    }
+                } catch (Exception e) {
+
+                    barangayRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            String assignedTo = snapshot.child(Username + "/assignedTo").getValue(String.class);
+                            //Toast.makeText(Map_Activity.this,residentToBeRescue[1]+"",Toast.LENGTH_LONG).show();
+                            if (assignedTo.equals("Not assigned yet")) {
+                                //Toast.makeText(Map_Activity.this,"You are not assigned yet.",Toast.LENGTH_LONG).show();
+                            } else {
+                                rescuerIsAvailable = false;//Toast.makeText(Map_Activity.this,"Please wait until all data has been loaded.",Toast.LENGTH_LONG).show();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+
+                }
+            }
+
+
             for (int index = 0; index < residentFeatureList.size(); index++) {
 
                 try {
-                    if (residentFeatureList.get(index).getStringProperty("myRescuer").equals(name) && rescuerIsAvailable) {
+                    //if resident to be rescue latittude == 0(location N/A)
+                    if ((residentFeatureList.get(index).getStringProperty("myRescuer").equals(name) && rescuerIsAvailable)) {
 
-                        nameOfAssignedResident_forRescuer = residentFeatureList.get(index).getStringProperty(name_str);
                         rescuerIsAvailable = false;
+/*
                         //add
                         Double Lat = (Double) residentFeatureList.get(index).getNumberProperty("Lat");
                         Double Lng = (Double) residentFeatureList.get(index).getNumberProperty("Lng");
+
 
                         //get
                         String cellphoneNumber = residentFeatureList.get(index).getStringProperty("cellphoneNumber");
                         String address = residentFeatureList.get(index).getStringProperty("address");
                         String residentName = residentFeatureList.get(index).getStringProperty(name_str);
+                        String myRescuer = residentFeatureList.get(index).getStringProperty("myRescuer");
 
                         //resident to be rescue only
-                        residentToBeRescue.add(0, Feature.fromGeometry(Point.fromLngLat(Lng, Lat)));
-                        residentToBeRescue.get(0).addStringProperty(name_str, residentName);
-                        residentToBeRescue.get(0).addStringProperty("cellphoneNumber", cellphoneNumber);
-                        residentToBeRescue.get(0).addStringProperty("address", address);
-                        residentToBeRescue.get(0).addNumberProperty("Lng", Lng);
-                        residentToBeRescue.get(0).addNumberProperty("Lat", Lat);
+                        residentToBeRescue[0] = residentName;
+                        residentToBeRescue[1] = Lat;
+                        residentToBeRescue[2] = Lng;
+                        residentToBeRescue[3] = address;
+                        residentToBeRescue[4] = cellphoneNumber;
+                        residentToBeRescue[5] = myRescuer;
 
-                        locationOfAssignedResident_forRescuer.setLongitude(Lng);
-                        locationOfAssignedResident_forRescuer.setLatitude(Lat);
+
+ */
+                        //locationOfAssignedResident_forRescuer.setLongitude(Lng);
+                        //locationOfAssignedResident_forRescuer.setLatitude(Lat);
                         break;
                     }
                 } catch (Exception e) {
                 }
             }
-
-
-        }
     }
 //__________________________________________________________________________________________________
 
@@ -974,6 +1526,10 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     List<Feature> warningFeatures = mapboxMap.queryRenderedFeatures(screenPoint, WARNING_LAYER_ID);
                     List<Feature> residentFeatures = mapboxMap.queryRenderedFeatures(screenPoint, RESIDENT_LAYER_ID);
                     List<Feature> adminFeatures = mapboxMap.queryRenderedFeatures(screenPoint, ADMIN_LAYER_ID);
+
+                    navigationBtn.setBackgroundResource(R.drawable.get_my_direction);
+                    contact_container.setVisibility(View.VISIBLE);
+                    levelTv.setVisibility(View.GONE);
 
                     //RESCUER
                     if (!rescuerFeatures.isEmpty()) {
@@ -1038,7 +1594,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         if (ThisUserType.equals(admin_str)) {
 
                             DoneBtn.setVisibility(View.VISIBLE);
-                            setUpDoneBtnAdmin(rescuerColor);
+                           // setUpDoneBtnAdmin(rescuerColor);
 
                         } else {
                             DoneBtn.setVisibility(View.GONE);
@@ -1114,18 +1670,25 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                             DoneBtn.setVisibility(View.VISIBLE);
 
                             if (locationIsAccurate) {
-                                DoneBtn.setEnabled(true);
-                                DoneBtn.setBackgroundResource(R.drawable.done);
-                                navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                                //DoneBtn.setEnabled(true);
+                               // DoneBtn.setBackgroundResource(R.drawable.done);
+                                if(ThisUserType.equals(rescuer_str))
+                                {
+                                    navigationBtn.setBackgroundResource(R.drawable.direction_onrescuer);
+                                }else{
+                                    navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                                }
+                                //ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
                             } else {
-                                DoneBtn.setEnabled(false);
-                                DoneBtn.setBackgroundResource(R.drawable.disable_done);
+                                //DoneBtn.setEnabled(false);
+                                //DoneBtn.setBackgroundResource(R.drawable.disable_done);
                                 navigationBtn.setBackgroundResource(R.drawable.get_my_direction);
+                                //ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
                             }
 
                         } else if (ThisUserType.equals(admin_str)) {
                             DoneBtn.setVisibility(View.VISIBLE);
-                            setUpDoneBtnAdmin(residentColor);
+                            //setUpDoneBtnAdmin(residentColor);
 
                         } else {
                             DoneBtn.setVisibility(View.GONE);
@@ -1172,11 +1735,13 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     else if (!warningFeatures.isEmpty()) {
                         Feature selectedFeature = warningFeatures.get(0);
                         String name = selectedFeature.getStringProperty(name_str);
+                        String level = selectedFeature.getStringProperty("level");
+                        String location = selectedFeature.getStringProperty("location");
 
 
                         ArrayList<String> contents = new ArrayList<>();
                         contents.add(name);
-                        contents.add("Taliptip, Bulakan, Bulacan");
+                        contents.add(location);
                         contents.add("N/A");
 
                         double destinationLat = (double) selectedFeature.getNumberProperty("Lat");
@@ -1197,13 +1762,14 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     UI_myRescuer.setTextColor(warningColor);
 
  */
-
-
-                        identification.setVisibility(View.VISIBLE);
+                        levelTv.setText(level);
+                        levelTv.setVisibility(View.VISIBLE);
                         UI_NameTV.setText(name);
-                        UI_AddressTv.setText("Unkown");
-                        UI_ContactTv.setText("Unkown");
+                        //UI_AddressTv.setText("Unkown");
+                        //UI_ContactTv.setText("N/A");
                         DoneBtn.setVisibility(View.GONE);
+                        identification.setVisibility(View.VISIBLE);
+                        contact_container.setVisibility(View.INVISIBLE);
 
                         if (!assigning) {
                             selectedName = warning_str;
@@ -1223,7 +1789,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 } catch (Exception e) {
                     //LatLng.setVisibility(View.VISIBLE);
                     //LatLng.setText(e.toString());
-                    Toast.makeText(Map_Activity.this,e.toString(),Toast.LENGTH_LONG).show();
+                    //Toast.makeText(Map_Activity.this,e.toString(),Toast.LENGTH_LONG).show();
                 }
                 ;
                 return true;
@@ -1236,7 +1802,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     public void setIdentification(ArrayList<String> contents, Point origin, Point destination){
 
-        address_container.setVisibility(View.VISIBLE);
+
 
         UI_NameTV.setText(contents.get(0));
         UI_AddressTv.setText(contents.get(1));
@@ -1244,59 +1810,77 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         distanceTv.setText("-- --");
         durationTv.setText("-- --");
 
-
-        NavigationRoute.builder(this)
-                .accessToken(Mapbox.getAccessToken())
-                .origin(origin)
-                .destination(destination)
-                .enableRefresh(true)
-                .build()
-                .getRoute(new Callback<DirectionsResponse>() {
-                    @SuppressLint({"LogNotTimber", "SetTextI18n"})
-                    @Override
-                    public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
+        if(destination.latitude() != 0) {
 
 
-                        if (response.body() == null) {
-                            Log.e(TAG, "No routes found,check rigth user and access token");
-                            return;
-                        } else if (response.body().routes().size() == 0) {
-                            Log.e(TAG, "No routes found");
-                            return;
+
+            if(ThisUserType.equals(rescuer_str))
+            {
+                addressMarker.setBackgroundResource(R.drawable.small_marker_icon_rescuer);
+            }else{
+                addressMarker.setBackgroundResource(R.drawable.small_marker_icon);
+            }
+
+            NavigationRoute.builder(this)
+                    .accessToken(Mapbox.getAccessToken())
+                    .origin(origin)
+                    .destination(destination)
+                    .enableRefresh(true)
+                    .build()
+                    .getRoute(new Callback<DirectionsResponse>() {
+                        @SuppressLint({"LogNotTimber", "SetTextI18n"})
+                        @Override
+                        public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
+
+
+                            if (response.body() == null) {
+                                Log.e(TAG, "No routes found,check rigth user and access token");
+                                return;
+                            } else if (response.body().routes().size() == 0) {
+                                Log.e(TAG, "No routes found");
+                                return;
+                            }
+
+                            DirectionsRoute currentRoute = response.body().routes().get(0);
+
+
+                            //----------------DISTANCE AND DURATION--------------------------------------------
+                            Double distance = currentRoute.distance();
+                            Double duration = currentRoute.duration();
+                            if (distance > 1000) {
+                                distanceTv.setText(String.format("%.2f", currentRoute.distance() / 1000) + " km");
+                            } else {
+                                int min = (int) (distance / 1);
+                                distanceTv.setText(min + " m");
+                            }
+
+                            if (duration > 3600) {
+                                int hour = (int) (duration / 3600);
+                                int min = (int) ((duration % 3600) / 60);
+                                durationTv.setText(hour + " hr " + min + " min");
+                            } else {
+                                int min = (int) (duration / 60);
+                                durationTv.setText(min + " min");
+                            }
+                            //----------------------------------------------------------------------------------
+
                         }
 
-                        DirectionsRoute currentRoute = response.body().routes().get(0);
-
-
-                        //----------------DISTANCE AND DURATION--------------------------------------------
-                        Double distance = currentRoute.distance();
-                        Double duration = currentRoute.duration();
-                        if(distance>1000) {
-                            distanceTv.setText(String.format("%.2f", currentRoute.distance() / 1000) + " km");
-                        }else{
-                            int min = (int) (distance/1);
-                            distanceTv.setText(min + " m");
+                        @Override
+                        public void onFailure(Call<DirectionsResponse> call, Throwable t) {
+                            Log.e(TAG, "error: " + t.getMessage());
                         }
-
-                        if(duration>3600) {
-                            int hour = (int) (duration/3600);
-                            int min = (int) ((duration%3600)/60);
-                            durationTv.setText(hour+" hr "+min+" min");
-                        }else{
-                            int min = (int) (duration/60);
-                            durationTv.setText(min+" min");
-                        }
-                        //----------------------------------------------------------------------------------
-
-                    }
-
-                    @Override
-                    public void onFailure(Call<DirectionsResponse> call, Throwable t) {
-                        Log.e(TAG, "error: " + t.getMessage());
-                    }
-                });
+                    });
 
 
+
+        }else{//if resident to be rescue has no location
+            distanceTv.setText("N/A");
+            durationTv.setText("N/A");
+            addressMarker.setBackgroundResource(R.drawable.no_location_icon);
+        }
+
+        address_container.setVisibility(View.VISIBLE);
         identification.setVisibility(View.VISIBLE);
     }
 
@@ -1307,12 +1891,12 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         String myRescuer = UI_myRescuerTv.getText().toString();
         if (myRescuer.equals(no_rescuer_assigned) || myRescuer.equals("Not assigned yet")) {
             DoneBtn.setEnabled(true);
-            DoneBtn.setBackgroundResource(R.drawable.done);
+            //DoneBtn.setBackgroundResource(R.drawable.done);
 
             navigationMapRoute.updateRouteVisibilityTo(false);
         } else {
             DoneBtn.setEnabled(false);
-            DoneBtn.setBackgroundResource(R.drawable.disable_done);
+            //DoneBtn.setBackgroundResource(R.drawable.disable_done);
         }
 
 
@@ -1384,33 +1968,61 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         } else {
 
                             navigationMapRoute = new NavigationMapRoute(null, mapView, mapboxMap);
-
                         }
-                        navigationMapRoute.showAlternativeRoutes(true);
+                        //navigationMapRoute.showAlternativeRoutes(true);
                         navigationMapRoute.addRoute(currentRoute);
 
-/*
-                 //----------------DISTANCE AND DURATION--------------------------------------------
-                Double distance = currentRoute.distance();
-                Double duration = currentRoute.duration();
-                if(distance>1000) {
-                    distanceTv.setText(String.format("%.2f", currentRoute.distance() / 1000) + " km");
-                }else{
-                    int min = (int) (distance/1);
-                    distanceTv.setText(min + " m");
-                }
 
-                if(duration>3600) {
-                    int hour = (int) (duration/3600);
-                    int min = (int) ((duration%3600)/60);
-                    durationTv.setText(hour+" hr "+min+" min");
-                }else{
-                    int min = (int) (duration/60);
-                    durationTv.setText(min+" min");
-                }
+                 //----------------DISTANCE AND DURATION--------------------------------------------
+                        if (ThisUserType.equals(rescuer_str)) {
+
+                            if(residentToBeRescue[0].toString().equals(UI_NameTV.getText().toString())) {
+                                Double distance = currentRoute.distance();
+                                Double duration = currentRoute.duration();
+
+                                if (distance > 1000) {
+                                    distanceTv.setText(String.format("%.2f", currentRoute.distance() / 1000) + " km");
+                                } else {
+                                    int min = (int) (distance / 1);
+                                    distanceTv.setText(min + " m");
+                                }
+
+                                if (duration > 3600) {
+                                    int hour = (int) (duration / 3600);
+                                    int min = (int) ((duration % 3600) / 60);
+                                    durationTv.setText(hour + " hr " + min + " min");
+                                } else {
+                                    int min = (int) (duration / 60);
+                                    durationTv.setText(min + " min");
+                                }
+                            }
+                        }else if(ThisUserType.equals(resident_str)){
+                            if(rescuerForThisUser[0].toString().equals(UI_NameTV.getText().toString())) {
+                                Double distance = currentRoute.distance();
+                                Double duration = currentRoute.duration();
+
+                                if (distance > 1000) {
+                                    distanceTv.setText(String.format("%.2f", currentRoute.distance() / 1000) + " km");
+                                } else {
+                                    int min = (int) (distance / 1);
+                                    distanceTv.setText(min + " m");
+                                }
+
+                                if (duration > 3600) {
+                                    int hour = (int) (duration / 3600);
+                                    int min = (int) ((duration % 3600) / 60);
+                                    durationTv.setText(hour + " hr " + min + " min");
+                                } else {
+                                    int min = (int) (duration / 60);
+                                    durationTv.setText(min + " min");
+                                }
+                            }
+                        }
                 //----------------------------------------------------------------------------------
 
- */
+
+
+
 
                     }
 
@@ -1427,19 +2039,13 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     //-----SYMBOLS----------------------------------------------------------------------------------
     public void warningSymbol() {
 
-        //SYMBOL COORDINATES SAMPLE
-        warningFeatureList.add(Feature.fromGeometry(
-                Point.fromLngLat(120.912121, 14.8230204)));
-        warningFeatureList.get(0).addStringProperty(name_str, "Flood Warning");
-        warningFeatureList.get(0).addNumberProperty("Lat",14.8230204);
-        warningFeatureList.get(0).addNumberProperty("Lng",120.912121);
-        //reset geojson MapStyle source
-        warningMapSource.setGeoJson(FeatureCollection.fromFeatures(warningFeatureList));
-
-
-        //reset map layer
-        MapStyle.removeLayer(warningSymbolLayer);
-        MapStyle.addLayer(warningSymbolLayer);
+        try {
+            //reset geojson MapStyle source
+            warningMapSource.setGeoJson(FeatureCollection.fromFeatures(warningFeatureList));
+            //reset map layer
+            MapStyle.removeLayer(warningSymbolLayer);
+            MapStyle.addLayer(warningSymbolLayer);
+        }catch (Exception e){}
 
 
     }
@@ -1501,6 +2107,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     //_________________________________MAPBOX DEFAULT SETUP_________________________________________
 
     //-----ON MAP READY-----------------------------------------------------------------------------
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onMapReady(@NonNull MapboxMap mapboxMap) {
 
@@ -1539,7 +2146,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
         mapboxMap.setStyle(//styleMode
                 new Style.Builder().fromUri(styleMode).withImage(RESIDENT_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(),
-                        resident)).withSource(residentMapSource).withLayer(residentSymbolLayer), new Style.OnStyleLoaded() {
+                        R.drawable.resident_marker)).withSource(residentMapSource).withLayer(residentSymbolLayer), new Style.OnStyleLoaded() {
 
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
@@ -1549,23 +2156,23 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         MapStyle = style;
 
 
-                        MapStyle.addImage(RESCUER_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(), R.drawable.rescuer));
+                        MapStyle.addImage(RESCUER_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(), R.drawable.rescuer_marker));
                         MapStyle.addSource(rescuerMapSource);
                         MapStyle.addLayer(rescuerSymbolLayer);
-                        MapStyle.addImage(WARNING_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(), R.drawable.stop__1_));
+                        MapStyle.addImage(WARNING_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(), R.drawable.flood_monitoring_system));
                         MapStyle.addSource(warningMapSource);
                         MapStyle.addLayer(warningSymbolLayer);
                         MapStyle.addImage(ADMIN_ICON_ID, BitmapFactory.decodeResource(Map_Activity.this.getResources(), R.drawable.admin));
                         MapStyle.addSource(adminMapSource);
                         MapStyle.addLayer(adminSymbolLayer);
 
+
                         enableLocationComponent(style);
                         mapClickListener();
                         residentSymbol();
                         rescuerSymbol();
-                        warningSymbol();
                         adminSymbol();
-
+                        warningSymbol();
 
 // Set up the OfflineManager
                         offlineManager = OfflineManager.getInstance(Map_Activity.this);
@@ -1630,6 +2237,10 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                                                             ///LocationCompass();
                                                             endProgress("Loading complete");
 
+
+
+                                                            //read_RescueMe("");delete
+
                                                         } else if (status.isRequiredResourceCountPrecise()) {
                                                             // Switch to determinate state
                                                             setPercentage((int) Math.round(percentage));
@@ -1662,10 +2273,9 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     }
                 });
 
-        read_RescueMe("");
 
     }
-    //----------------------------------------------------------------------------------------------
+    //---a-------------------------------------------------------------------------------------------
 
 
 
@@ -1706,6 +2316,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 } catch (ApiException exception) {      //This will request to enable gps if gps is off
 
                     GPSisOn = false;
+                    searchingGPS.setVisibility(View.GONE);
+                    locationIsAccurate = false;
 
                     switch (exception.getStatusCode()) {
                         case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
@@ -1752,6 +2364,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         if (showComponentLocationClicked) {
 
                             barangayRef.child(Username).child("needRescue").setValue("yes");
+                            searchingGPS.setVisibility(View.VISIBLE);
+
                             if (ThisUserType.equals(rescuer_str)) {
                                 getResidentLocationForRescuer(Username);
                             }
@@ -1823,7 +2437,6 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         locationEngine.requestLocationUpdates(request, callback, getMainLooper());
         locationEngine.getLastLocation(callback);
 
-
     }
     //----------------------------------------------------------------------------------------------
 
@@ -1831,7 +2444,20 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
     //-----PERMISSION MANAGER-----------------------------------------------------------------------
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Toast.makeText(Map_Activity.this, requestCode+"<>", Toast.LENGTH_SHORT).show();
+      //SMS
+        switch (requestCode) {
+            case 100:{//if permission is granted
+
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    checkSOS();
+                } else {
+                    return;
+                }
+            }
+
+        }
 
 
     }
@@ -1865,7 +2491,6 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
 
-
     //_________________________________LOCATION CALLBACK CLASS______________________________________
     private class LocationChangeListeningActivityLocationCallback
             implements LocationEngineCallback<LocationEngineResult> {
@@ -1880,7 +2505,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         /**
          * The LocationEngineCallback interface's method which fires when the device's location has changed.
          *
-         * @param result the LocationEngineResult object which has the last known location within it.
+         * @param result the LocationEngineResult object which has the last known location within it.ongoing rescue
          */
         @RequiresApi(api = Build.VERSION_CODES.O)
         @SuppressLint({"SetTextI18n", "DefaultLocale"})
@@ -1929,8 +2554,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     if (showComponentLocationClicked&&result.getLocations().size()!=0) {
 
                         //if location is now accurate send the lat and lng to database
-                        if (result.getLocations().get(0).getAccuracy() < 10) {
-
+                        if (result.getLocations().get(0).getAccuracy() < gpsAccuracy) {
+                            gpsAccuracy = 10;
                             if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                                 GPSisOn = true;
                             else
@@ -1947,22 +2572,63 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                                 barangayRef.child(Username).child("lng").setValue(result_lng);
                                 //LatLng.setText("Your current location has been sent. please keep your gps on");
 
-                                if (!rescuerIsAvailable) {
+                                //for rescuer
+                                if(ThisUserType.equals(rescuer_str)) {
 
-                                    Point destination = Point.fromLngLat(locationOfAssignedResident_forRescuer.getLongitude(),
-                                            locationOfAssignedResident_forRescuer.getLatitude());
-                                    Point origin = Point.fromLngLat(result_lng,
-                                            result_lat);
+                                    if (!rescuerIsAvailable) {
 
-                                    getRoute(origin, destination);
-                                } else {
-                                    getResidentLocationForRescuer(Username);
+                                        try {
+                                            Point destination = Point.fromLngLat((Double) residentToBeRescue[2],
+                                                    (Double) residentToBeRescue[1]);
+                                            Point origin = Point.fromLngLat(result_lng,
+                                                    result_lat);
+                                            getRoute(origin, destination);
+                                        }catch(Exception e){}
+
+                                    } else {
+                                        getResidentLocationForRescuer(Username);
+                                    }
+
+                                //for resident
+                                }else if(ThisUserType.equals(resident_str)&&iHaveRescuer){
+                                    try{
+                                        Point destination = Point.fromLngLat((Double) rescuerForThisUser[2],
+                                                (Double) rescuerForThisUser[1]);
+                                        Point origin = Point.fromLngLat(result_lng,
+                                                result_lat);
+
+                                        getRoute(origin, destination);
+                                    }catch(Exception e){}
+                                    }
+
+                                //Toast.makeText(Map_Activity.this, "Location has been sent", Toast.LENGTH_LONG).show();
+                                if(!locationIsAccurate) {
+
+                                    locationIsAccurate = true;
+                                    if(ThisUserType.equals(rescuer_str))
+                                    {
+                                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated_rescuer);
+                                    }else{
+                                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+                                    }
+                                    searchingGPS.setVisibility(View.GONE);
+
+                                    if(!rescuerIsAvailable) {
+                                        gpsFunctions("navigationButton");
+                                        if(ThisUserType.equals(rescuer_str))
+                                        {
+                                            navigationBtn.setBackgroundResource(R.drawable.direction_onrescuer);
+                                        }else{
+                                            navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                                        }
+                                    }
+
+
                                 }
 
-                                Toast.makeText(Map_Activity.this, "Location has been sent", Toast.LENGTH_LONG).show();
                                 currentLocation = result.getLocations().get(0);
-                                locationIsAccurate = true;
-                                ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+
+                                //ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);toast
                             }
 
                         }
@@ -1985,8 +2651,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
             Map_Activity activity = activityWeakReference.get();
             if (activity != null) {
 
-                Toast.makeText(activity, exception.getLocalizedMessage(),
-                        Toast.LENGTH_SHORT).show();
+                //Toast.makeText(activity, exception.getLocalizedMessage(),
+                 //       Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -2009,17 +2675,8 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                 //second click
 
-                if (ThisUserType.equals(rescuer_str)) {
-                    barangayRef.child(Username).child(assignedTo_str).setValue("Not assigned yet");
-                    navigationMapRoute.updateRouteVisibilityTo(false);
-                    DoneBtn.setVisibility(View.GONE);
-                    barangayRef.child(nameOfAssignedResident_forRescuer).child("myRescuer").setValue(no_rescuer_assigned);
-                    barangayRef.child(nameOfAssignedResident_forRescuer).child("needRescue").setValue("no");
-                    rescuerIsAvailable = true;
-                    identification.setVisibility(View.GONE);
-
-
-                } else if (ThisUserType.equals(admin_str)) {
+                doneBtnDialogBox.show();
+                 /*else if (ThisUserType.equals(admin_str)) {
                     if (assigning) {
 
                         if (selectedUserType.equals(rescuer_str)) {
@@ -2057,6 +2714,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
                     }//first click
+
                     else {
 
                         if (selectedUserType.equals(rescuer_str)) {
@@ -2092,7 +2750,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
                     }
 
-                }
+                }*/
             }
         });
     }
@@ -2118,11 +2776,28 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         navigationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                navigationBtn.setBackgroundResource(R.drawable.direction_on);
-                address_container.setVisibility(View.VISIBLE);
-                identification.setVisibility(View.VISIBLE);
+                //Toast.makeText(Map_Activity.this,residentToBeRescue[0]+"\n"+residentToBeRescue[1]+"\n"+residentToBeRescue[2]+"\n"+residentToBeRescue[3]+"\n"+residentToBeRescue[4]+"\n"+residentToBeRescue[5]+"\n",Toast.LENGTH_LONG).show();
+                //navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                //address_container.setVisibility(View.VISIBLE);
+                //identification.setVisibility(View.VISIBLE);
                 gpsFunctions("navigationButton");
+
+            }
+        });
+    }
+
+
+    //-----SOS BUTTON-------------------------------------------------------------------------------
+    public void sos_btn(){
+        sosBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(sosReqOngoing){
+                    cancleSosDialogBox.show();
+                }else {
+                    sosDialogBox.show();
+                }
 
             }
         });
@@ -2133,37 +2808,116 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         //This will check if gps is on, if not request to enable gps
         RequestToEnableGPS();
 
-        if (locationIsAccurate && GPSisOn) {
-            barangayRef.child(Username).child("needRescue").setValue("yes");
-            ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+        if (GPSisOn) {
+
+
+
+            if(button.equals("sos"))
+                barangayRef.child(Username).child("needRescue").setValue("yes");
+
+            if(locationIsAccurate) {
+                try {
+                    if(ThisUserType.equals(rescuer_str))
+                    {
+                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated_rescuer);
+                    }else{
+                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+                    }
+                    searchingGPS.setVisibility(View.GONE);
+                } catch (Exception e) {
+                }
+            }else{
+                searchingGPS.setVisibility(View.VISIBLE);
+            }
+
 
             if (ThisUserType.equals(rescuer_str)) {
 
-
-
                 getResidentLocationForRescuer(Username);//this only work one time
-                if(!rescuerIsAvailable&&button.equals("navigationButton")){
-                    ArrayList<String> contents = new ArrayList<>();
-                    contents.add(residentToBeRescue.get(0).getStringProperty(name_str));
-                    contents.add(residentToBeRescue.get(0).getStringProperty("address"));
-                    contents.add(residentToBeRescue.get(0).getStringProperty("cellphoneNumber"));
+                //NAVIGATION BUTTON ONLY
+                if(button.equals("navigationButton")) {
 
-                    double destinationLat = (double) residentToBeRescue.get(0).getNumberProperty("Lat");
-                    double destinationLng = (double) residentToBeRescue.get(0).getNumberProperty("Lng");
+                    //IF USER IS RESCUER AND IS NOT AVAILABLE
+                    if (!rescuerIsAvailable) {
+                        try {
+                            ArrayList<String> contents = new ArrayList<>();
+                            contents.add(residentToBeRescue[0].toString());//name
+                            contents.add(residentToBeRescue[3].toString());//address
+                            contents.add(residentToBeRescue[4].toString());//contact
+
+
+                            double destinationLat = (double) residentToBeRescue[1];
+                            double destinationLng = (double) residentToBeRescue[2];
+                            //Toast.makeText(Map_Activity.this, destinationLat+"--"+destinationLng, Toast.LENGTH_SHORT).show();
+                            Point origin = Point.fromLngLat(currentLocation.getLongitude(), currentLocation.getLatitude());
+                            Point destination = Point.fromLngLat(destinationLng, destinationLat);
+
+                            contact_container.setVisibility(View.VISIBLE);
+                            DoneBtn.setVisibility(View.VISIBLE);
+                            levelTv.setVisibility(View.GONE);
+                            if (locationIsAccurate) {
+                                if (ThisUserType.equals(rescuer_str)) {
+                                    navigationBtn.setBackgroundResource(R.drawable.direction_onrescuer);
+                                    ShowMyLocation.setBackgroundResource(R.drawable.gps_activated_rescuer);
+                                } else {
+                                    navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                                    ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+                                }
+
+                                //searchingGPS.setVisibility(View.GONE);
+                            }
+
+                            Log.i("latlng",""+destination);
+                            setIdentification(contents, origin, destination);
+                        }catch(Exception e){
+                            Toast.makeText(Map_Activity.this, "Resident has no location", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(Map_Activity.this, "Not assigned yet", Toast.LENGTH_SHORT).show();
+                    }
+
+
+                }
+            }else if(ThisUserType.equals(resident_str)){
+
+                if(iHaveRescuer&&button.equals("navigationButton")){
+
+                    ArrayList<String> contents = new ArrayList<>();
+                    contents.add(rescuerForThisUser[0].toString());//name
+                    contents.add(rescuerForThisUser[3].toString());//address
+                    contents.add(rescuerForThisUser[4].toString());//contact
+
+
+                    double destinationLat = (double) rescuerForThisUser[1];
+                    double destinationLng = (double) rescuerForThisUser[2];
 
                     Point origin = Point.fromLngLat(currentLocation.getLongitude(), currentLocation.getLatitude());
                     Point destination = Point.fromLngLat(destinationLng, destinationLat);
+
+                    if(ThisUserType.equals(rescuer_str))
+                    {
+                        navigationBtn.setBackgroundResource(R.drawable.direction_onrescuer);
+                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated_rescuer);
+                    }else{
+                        navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                        ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+                    }
+
+                    searchingGPS.setVisibility(View.GONE);
+
+                    //DoneBtn.setVisibility(View.VISIBLE);
 
                     setIdentification(contents,origin,destination);
                 }
             }
 
-        } else if (GPSisOn) {//if still no location, display this
+        }
+        /*else if (GPSisOn) {//if still no location, display this
 
             barangayRef.child(Username).child("needRescue").setValue("yes");
             //LatLng.setText("Please do not leave the app until we find your location.");
             //LatLng.setVisibility(View.VISIBLE);
-            Toast.makeText(Map_Activity.this,"Do not leave the app until we find your location.",Toast.LENGTH_LONG).show();
+            //Toast.makeText(Map_Activity.this,"Do not leave the app until we find your location.",Toast.LENGTH_LONG).show();
             if (ThisUserType.equals(rescuer_str)) {
                 getResidentLocationForRescuer(Username);
 
@@ -2179,18 +2933,95 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                     Point origin = Point.fromLngLat(currentLocation.getLongitude(), currentLocation.getLatitude());
                     Point destination = Point.fromLngLat(destinationLng, destinationLat);
 
+                    navigationBtn.setBackgroundResource(R.drawable.direction_on);
+                    ShowMyLocation.setBackgroundResource(R.drawable.gps_activated);
+                    DoneBtn.setVisibility(View.VISIBLE);
                     setIdentification(contents,origin,destination);
                 }
             }
 
 
-        }
+        }*/
 
         showComponentLocationClicked = true;
         zoomWhileTracking();
         displayMyLocation();
 
     }
+
+
+
+//MENU BUTTON
+    public void setMenu(){
+        menu.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @Override
+            public void onClick(View v) {
+                PopupMenu popupMenu = new PopupMenu(Map_Activity.this,v, Gravity.RIGHT);
+                popupMenu.setOnMenuItemClickListener(Map_Activity.this);
+                popupMenu.inflate(R.menu.popup_menu);
+
+
+                popupMenu.show();
+            }
+        });
+    }
+
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+
+        switch (item.getItemId()){
+            case R.id.Logout:
+
+                barangayRef.child(Username).child("needRescue").setValue("no");
+
+                //delete to sqlite
+                DBHelper db = new DBHelper(this);
+                boolean deleted = db.delete(Username);
+
+                if(deleted){
+                    /*
+                    //Toast.makeText(this,"Logout",Toast.LENGTH_LONG).show();
+                    if(ThisUserType.equals(rescuer_str)) {
+
+                        try {barangayRef.removeEventListener(assigedtoLsnr);} catch (Exception e) {}
+                        barangayRef.child(Username).child("assignRequest").removeEventListener(assignReq);
+                        barangayRef.removeEventListener(onGoingRescuer);
+                    }
+
+
+                    fmdRef.removeEventListener(fmdLisnr);
+                    barangayRef.removeEventListener(needrescueLsnr);
+                    barangayRef.removeEventListener(newChildLsnr);
+
+                    try {barangayRef.removeEventListener(latLsnr);} catch (Exception e) {}
+                    if(ThisUserType.equals(resident_str)) {
+                        barangayRef.removeEventListener(residentmyrescuerLsnr);
+                        barangayRef.removeEventListener(myrescuerLsnr);
+                    }
+
+                     */
+
+
+                    Intent intent = new Intent(Map_Activity.this,LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    System.exit(0);
+                }else{
+                    //Toast.makeText(this,"failed",Toast.LENGTH_LONG).show();
+                }
+
+
+
+                return true;
+            case R.id.Profile:
+                profileDialogBox.show();
+                return true;
+            default:
+                return false;
+        }
+    }
+
     //__________________________________________________________________________________________________
 
 
@@ -2329,7 +3160,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 .build(); // Creates a CameraPosition from the builder
 
         mapboxMap.animateCamera(CameraUpdateFactory
-                .newCameraPosition(position), 15000);
+                .newCameraPosition(position), 10000);
     }
 
     private void endProgress(final String message) {
@@ -2348,6 +3179,318 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     }
     //----------------------------------------------------------------------------------------------
+
+
+
+
+
+    //------DIALOG AREA-----------------------------------------------------------------------------
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void setProfileDialogbox(String name, String address, String contact){
+        profileDialogBox = new Dialog(Map_Activity.this);
+        profileDialogBox.setContentView(R.layout.profile_dialog_box);
+        profileDialogBox.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        profileDialogBox.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        profileDialogBox.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        profileDialogBox.setCancelable(false);
+
+        exitBtn = profileDialogBox.findViewById(R.id.exitBtn);
+        profile_lbl = profileDialogBox.findViewById(R.id.profile_lbl);
+        profile_name = profileDialogBox.findViewById(R.id.profile_name);
+        profile_contact = profileDialogBox.findViewById(R.id.profile_contact);
+        profile_location = profileDialogBox.findViewById(R.id.profile_location);
+        user_icon = profileDialogBox.findViewById(R.id.user_icon);
+        contact_icon = profileDialogBox.findViewById(R.id.contact_icon);
+        location_icon = profileDialogBox.findViewById(R.id.location_icon);
+        profile_name.setText(name);
+        profile_contact.setText(contact);
+        profile_location.setText(address);
+
+
+        if(ThisUserType.equals(rescuer_str)){
+            exitBtn.setTextColor(Color.parseColor(("#f3ac5b")));
+            profile_lbl.setTextColor(Color.parseColor(("#f3ac5b")));
+            user_icon.setBackgroundResource(R.drawable.user_rescuer);
+            contact_icon.setBackgroundResource(R.drawable.contact_icon_rescuer);
+            location_icon.setBackgroundResource(R.drawable.small_marker_icon_rescuer);
+        }
+
+
+
+        exitBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                profileDialogBox.dismiss();
+            }
+        });
+    }
+
+    String assignRequestName;
+    public void assignRequest(){
+        assignReq = barangayRef.child(Username+"/assignRequest").addValueEventListener(new ValueEventListener() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                assignRequestName = snapshot.getValue(String.class);
+                if(!assignRequestName.equals("No request")){
+
+                    barangayRef.child(assignRequestName).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            String current_location = snapshot.child("currentLocation").getValue(String.class);
+                            String address = snapshot.child("address").getValue(String.class);
+                            if(!current_location.equals("No current location")){
+                                serverRequestMsg.setText("There is a request from server to rescue "+assignRequestName+" on "+current_location+".");
+                                serverReqDialog.show();
+                            }else{
+                                serverRequestMsg.setText("There is a request from server to rescue "+assignRequestName+" on "+address+".");
+                                serverReqDialog.show();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+
+                    //serverRequestDialogBox(assignRequestName);
+
+
+                }else{
+                    serverReqDialog.dismiss();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    @SuppressLint("UseCompatLoadingForDrawables")
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void setdoneBtnDialogBox(){
+
+        doneBtnDialogBox = new Dialog(Map_Activity.this);
+        doneBtnDialogBox.setContentView(R.layout.donebtn_dialog_box);
+        doneBtnDialogBox.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        doneBtnDialogBox.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        doneBtnDialogBox.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        doneBtnDialogBox.setCancelable(false);
+
+        done_yesBtn= doneBtnDialogBox.findViewById(R.id.done_yesBtn);
+        done_noBtn = doneBtnDialogBox.findViewById(R.id.done_noBtn);
+
+
+
+        done_yesBtn.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+
+
+                if (ThisUserType.equals(rescuer_str)) {
+                    barangayRef.child(Username).child(assignedTo_str).setValue("Not assigned yet");
+
+                    try {
+                        navigationMapRoute.updateRouteVisibilityTo(false);
+                    }catch (Exception e){
+                        //Toast.makeText(Map_Activity.this,e+"",Toast.LENGTH_LONG).show();
+                    }
+
+                    //DoneBtn.setVisibility(View.GONE);
+                    barangayRef.child(residentToBeRescue[0].toString()).child("myRescuer").setValue(no_rescuer_assigned);
+                    barangayRef.child(residentToBeRescue[0].toString()).child("needRescue").setValue("no");
+                    barangayRef.child(residentToBeRescue[0].toString()).child("lat").setValue("");
+                    barangayRef.child(residentToBeRescue[0].toString()).child("lng").setValue("");
+                    barangayRef.child(Username+"/assignedTo").setValue("Not assigned yet");
+                    rescuerIsAvailable = true;
+                    identification.setVisibility(View.GONE);
+                    address_container.setVisibility(View.GONE);
+                    onTheWay.setVisibility(View.GONE);
+                    navigationBtn.setBackgroundResource(R.drawable.get_my_direction);
+
+                    residentToBeRescue[0] = null;
+                    residentToBeRescue[1] = null;
+                    residentToBeRescue[2] = null;
+                    residentToBeRescue[3] = null;
+                    residentToBeRescue[4] = null;
+                    residentToBeRescue[5] = null;
+
+                    residentSymbol();
+
+                }
+                doneBtnDialogBox.dismiss();
+            }
+
+        });
+
+
+        done_noBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                doneBtnDialogBox.dismiss();
+            }
+        });
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void serverRequestDialogBox(){
+
+        serverReqDialog = new Dialog(Map_Activity.this);
+        serverReqDialog.setContentView(R.layout.server_req_dialog_box);
+        serverReqDialog.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        serverReqDialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        serverReqDialog.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        serverReqDialog.setCancelable(false);
+
+        serverRequestMsg = serverReqDialog.findViewById(R.id.serverRequestMsg);
+        acceptBtn= serverReqDialog.findViewById(R.id.acceptBtn);
+
+        declineBtn = serverReqDialog.findViewById(R.id.exitBtn);
+
+
+
+
+        acceptBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                barangayRef.child(assignRequestName+"/myRescuer").setValue(Username);
+                barangayRef.child(Username+"/assignRequest").setValue("No request");
+                barangayRef.child(Username+"/assignedTo").setValue(assignRequestName);
+                serverReqDialog.dismiss();
+
+                //Toast.makeText(Map_Activity.this, "Accepted", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        declineBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                serverReqDialog.dismiss();
+                barangayRef.child(Username+"/assignRequest").setValue("No request");
+                //Toast.makeText(Map_Activity.this, "Declined", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void setsosDialogBox(){
+
+        sosDialogBox = new Dialog(Map_Activity.this);
+        sosDialogBox.setContentView(R.layout.sos_dialog_box);
+        sosDialogBox.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        sosDialogBox.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        sosDialogBox.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        sosDialogBox.setCancelable(true);
+
+        yesBtn= sosDialogBox.findViewById(R.id.yesBtn);
+        noBtn = sosDialogBox.findViewById(R.id.noBtn);
+
+        yesBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sosDialogBox.dismiss();
+                sosBtn.setBackgroundResource(R.drawable.canclebtn);
+                gpsFunctions("sos");
+                barangayRef.child(Username).child("needRescue").setValue("yes");
+                sosReqOngoing = true;
+                //Toast.makeText(Map_Activity.this, "Yes", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        noBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sosDialogBox.dismiss();
+                /*sosBtn.setBackgroundResource(R.drawable.canclebtn);
+                sendingSOSThroughSMS = true;
+                gpsFunctions("sos");
+                sosReqOngoing = true;
+                checkMsgPermission();
+                */
+                //Toast.makeText(Map_Activity.this, "No", Toast.LENGTH_SHORT).show();
+            }
+        });
+        /*
+        sosDialogBox = new Dialog(Map_Activity.this);
+        sosDialogBox.setContentView(R.layout.sos_dialog_box);
+        sosDialogBox.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        sosDialogBox.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        sosDialogBox.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        sosDialogBox.setCancelable(false);
+
+        yesBtn= sosDialogBox.findViewById(R.id.yesBtn);
+        noBtn = sosDialogBox.findViewById(R.id.noBtn);
+
+        yesBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sosDialogBox.dismiss();
+                sosBtn.setBackgroundResource(R.drawable.canclebtn);
+                gpsFunctions("sos");
+                barangayRef.child(Username).child("needRescue").setValue("yes");
+                sosReqOngoing = true;
+                //Toast.makeText(Map_Activity.this, "Yes", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        noBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sosDialogBox.dismiss();
+
+                //Toast.makeText(Map_Activity.this, "No", Toast.LENGTH_SHORT).show();
+            }
+        });*/
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void setcancleSosDialogBox(){
+
+        cancleSosDialogBox = new Dialog(Map_Activity.this);
+        cancleSosDialogBox.setContentView(R.layout.cancle_sos_dialog_box);
+        cancleSosDialogBox.getWindow().setBackgroundDrawable(getDrawable(R.drawable.clear_backgroung));
+        cancleSosDialogBox.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        cancleSosDialogBox.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        cancleSosDialogBox.setCancelable(false);
+
+        yes_cancleBtn= cancleSosDialogBox.findViewById(R.id.yes_cancleBtn);
+        no_cancleBtn = cancleSosDialogBox.findViewById(R.id.no_cancleBtn);
+
+        yes_cancleBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cancleSosDialogBox.dismiss();
+                //sosBtn.setBackgroundResource(R.drawable.canclebtn);
+                sosBtn.setBackgroundResource(R.drawable.sosbtn);
+
+                barangayRef.child(Username).child("needRescue").setValue("no");
+                // gpsFunctions("sos");
+
+                sosReqOngoing = false;
+                //Toast.makeText(Map_Activity.this, "Yes", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        no_cancleBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cancleSosDialogBox.dismiss();
+
+                //Toast.makeText(Map_Activity.this, "No", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    //----------------------------------------------------------------------------------------------
+
 
 
 
@@ -2424,6 +3567,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
 
     //-----This will avoid restarting activity when orientation change------------------------------
+    @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
     public void handlingOrientation() {
 
         FragmentManager fm = getFragmentManager();
@@ -2585,9 +3729,21 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                 boolean connected = snapshot.getValue(Boolean.class);
 
                 if (connected) {
-                    connectionStatus.setBackgroundResource(R.drawable.internet_connected);
+                    if(ThisUserType.equals(rescuer_str))
+                    {
+                        connectionStatus.setBackgroundResource(R.drawable.internet_connected_rescuer);
+                    }else{
+                        connectionStatus.setBackgroundResource(R.drawable.internet_connected);
+                    }
                 } else {
-                    connectionStatus.setBackgroundResource(R.drawable.internet_disconnected);
+
+
+                    if(ThisUserType.equals(rescuer_str))
+                    {
+                        connectionStatus.setBackgroundResource(R.drawable.internet_disconnected__rescuer);
+                    }else{
+                        connectionStatus.setBackgroundResource(R.drawable.internet_disconnected);
+                    }
                 }
 
             }
@@ -2599,4 +3755,45 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
         });
     }
     //----------------------------------------------------------------------------------------------
+
+    private long backPressedTime = 0L;
+    @Override
+    public void onBackPressed() {
+
+        if((backPressedTime+2000) > System.currentTimeMillis()){
+            super.onBackPressed();
+            return;
+        }else{
+            Toast.makeText(Map_Activity.this,"Press again to exit",Toast.LENGTH_SHORT).show();
+        }
+
+        backPressedTime = System.currentTimeMillis();
+
+/*
+        if((backPressedTime+2000) > System.currentTimeMillis()){
+            Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("Exit",true);
+            startActivity(intent);
+
+            finish();
+            System.exit(0);
+            return;
+        }else{
+            Toast.makeText(Map_Activity.this,"Press again to exit",Toast.LENGTH_SHORT).show();
+        }
+
+        backPressedTime = System.currentTimeMillis();
+
+        Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("Exit",true);
+        startActivity(intent);
+
+        finish();
+        System.exit(0);
+
+ */
+
+    }
 }

@@ -4,45 +4,80 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/purple_500"
+    android:background="@color/black"
     android:orientation="vertical"
     tools:context=".RegisterActivity">
 
-    <Button
-        android:id="@+id/enter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="20dp"
-        android:text="Enter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.535"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/UserType"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <EditText
-        android:id="@+id/Name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:hint="Name"
-        android:inputType="textPersonName"
+    <ImageView
+        android:id="@+id/imageView4"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25" />
+        app:srcCompat="@drawable/sagip_agos_background" />
+
+    <Button
+        android:id="@+id/enter"
+        android:layout_width="200dp"
+        android:layout_height="32dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button"
+        android:fontFamily="sans-serif"
+        android:padding="0dp"
+        android:text="Submit"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        app:backgroundTint="@color/teal_700"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/Password"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <EditText
+        android:id="@+id/Name"
+        android:layout_width="230dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/edittext"
+        android:ems="10"
+
+        android:fontFamily="sans-serif"
+        android:hint="Name"
+        android:inputType="textPersonName"
+        android:paddingLeft="14dp"
+        android:paddingTop="6dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/grey_text"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView5"
+        app:layout_constraintVertical_bias="0.0" />
 
     <EditText
         android:id="@+id/CellphoneNumber"
-        android:layout_width="wrap_content"
+        android:layout_width="230dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:background="@drawable/edittext"
         android:ems="10"
+        android:fontFamily="sans-serif"
         android:hint="Cellphone Number"
         android:inputType="number"
+        android:paddingLeft="14dp"
+        android:paddingTop="6dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/grey_text"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -51,12 +86,21 @@
 
     <EditText
         android:id="@+id/Address"
-        android:layout_width="wrap_content"
+        android:layout_width="230dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:background="@drawable/edittext"
         android:ems="10"
+        android:fontFamily="sans-serif"
         android:hint="Address"
         android:inputType="textPersonName"
+        android:paddingLeft="14dp"
+        android:paddingTop="6dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/grey_text"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -65,12 +109,21 @@
 
     <EditText
         android:id="@+id/Password"
-        android:layout_width="wrap_content"
+        android:layout_width="230dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:background="@drawable/edittext"
         android:ems="10"
+        android:fontFamily="sans-serif"
         android:hint="Password"
         android:inputType="textPassword"
+        android:paddingLeft="14dp"
+        android:paddingTop="6dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/grey_text"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -78,12 +131,56 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <ImageView
+        android:id="@+id/imageView7"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginRight="6dp"
+        app:layout_constraintBottom_toBottomOf="@+id/Name"
+        app:layout_constraintEnd_toStartOf="@+id/Name"
+        app:layout_constraintTop_toTopOf="@+id/Name"
+        app:srcCompat="@drawable/user" />
+
+    <ImageView
+        android:id="@+id/imageView8"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginRight="6dp"
+        app:layout_constraintBottom_toBottomOf="@+id/CellphoneNumber"
+        app:layout_constraintEnd_toStartOf="@+id/Name"
+        app:layout_constraintTop_toTopOf="@+id/CellphoneNumber"
+        app:srcCompat="@drawable/icons8_contact_58" />
+
+    <ImageView
+        android:id="@+id/imageView9"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginRight="6dp"
+        app:layout_constraintBottom_toBottomOf="@+id/Address"
+        app:layout_constraintEnd_toStartOf="@+id/Name"
+        app:layout_constraintTop_toTopOf="@+id/Address"
+        app:srcCompat="@drawable/icons8_marker_100" />
+
+    <ImageView
+        android:id="@+id/imageView10"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginRight="6dp"
+        app:layout_constraintBottom_toBottomOf="@+id/Password"
+        app:layout_constraintEnd_toStartOf="@+id/Name"
+        app:layout_constraintTop_toTopOf="@+id/Password"
+        app:srcCompat="@drawable/key" />
+
+    <ImageView
         android:id="@+id/regConnectionStatus"
         android:layout_width="18dp"
         android:layout_height="18dp"
         android:layout_marginStart="10dp"
         android:layout_marginLeft="10dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="36dp"
         android:background="@drawable/internet_disconnected"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -92,16 +189,28 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <Spinner
-        android:id="@+id/UserType"
-        android:layout_width="210dp"
-        android:layout_height="42dp"
-        android:layout_marginTop="10dp"
-        android:entries="@array/UserType"
-        app:layout_constraintBottom_toBottomOf="parent"
+    <ImageView
+        android:id="@+id/imageView12"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="86dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/Password"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/verify" />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="36dp"
+        android:fontFamily="sans-serif"
+        android:text="REGISTER HERE!"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/Name"
+        app:layout_constraintTop_toBottomOf="@+id/imageView12" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

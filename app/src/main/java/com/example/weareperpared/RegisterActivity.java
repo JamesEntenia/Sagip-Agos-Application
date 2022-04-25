@@ -7,9 +7,11 @@ import androidx.core.content.res.ResourcesCompat;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -28,7 +30,7 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText Name, Address, CellphoneNumber, Password;
     private Button Enter;
     private Users users;
-    private Spinner UserType;
+    //private Spinner UserType;
 
     boolean accountIsExisting = false;
 
@@ -41,6 +43,10 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
         getSupportActionBar().hide();
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 
         connectionStatus = findViewById(R.id.regConnectionStatus);
         Name = findViewById(R.id.Name);
@@ -48,7 +54,7 @@ public class RegisterActivity extends AppCompatActivity {
         CellphoneNumber = findViewById(R.id.CellphoneNumber);
         Enter = findViewById(R.id.enter);
         Password = findViewById(R.id.Password);
-        UserType = findViewById(R.id.UserType);
+        //UserType = findViewById(R.id.UserType);
 
 
         database = FirebaseDatabase.getInstance();
@@ -117,7 +123,6 @@ public class RegisterActivity extends AppCompatActivity {
                             //snapshot.hasChild("");
                             users = dataSnapshot.getValue(Users.class);
                             //if name is existing
-
                             if (users.name.equals(Name.getText().toString())) {
 
                                 Toast.makeText(RegisterActivity.this, "Name is already registered", Toast.LENGTH_LONG).show();
@@ -131,7 +136,18 @@ public class RegisterActivity extends AppCompatActivity {
                                 CellphoneNumber.setText(null);
                                 accountIsExisting = true;
                                 break;
+                            }else if(CellphoneNumber.getText().toString().length() != 11){
+                                Toast.makeText(RegisterActivity.this, "invalid number", Toast.LENGTH_LONG).show();
+                                CellphoneNumber.setText(null);
+                                accountIsExisting = true;
+                                break;
+                            }else if((CellphoneNumber.getText().toString().charAt(0)!=48)&&(CellphoneNumber.getText().toString().charAt(1)!=57)){
+                                Toast.makeText(RegisterActivity.this, "Number must be 09xxxxxxxxx", Toast.LENGTH_LONG).show();
+                                CellphoneNumber.setText(null);
+                                accountIsExisting = true;
+                                break;
                             }
+
                         }
 
                         try {
@@ -140,13 +156,15 @@ public class RegisterActivity extends AppCompatActivity {
                                 accountIsExisting = true;
 
                                 UserHelper userHelper;
-                                if (UserType.getSelectedItem().toString().equals("Rescuer")) {
+                                /*if (UserType.getSelectedItem().toString().equals("Rescuer")) {
 
                                     userHelper = new UserHelper(Name.getText().toString(), Address.getText().toString(),
                                             CellphoneNumber.getText().toString(), "no", "", "", Password.getText().toString(),
                                             UserType.getSelectedItem().toString(), "No rescuer assigned", "Not assigned yet", "", "online");
 
                                 } else {
+
+                                 */
                                     userHelper = new UserHelper(
                                             Name.getText().toString(),
                                             Address.getText().toString(),
@@ -154,17 +172,30 @@ public class RegisterActivity extends AppCompatActivity {
                                             "no",
                                             "", "",
                                             Password.getText().toString(),
-                                            UserType.getSelectedItem().toString(),
+                                            "Resident",
                                             "No rescuer assigned",
-                                            "online");
-                                }
+                                            "online",
+                                            "No current location",
+                                            "Normal");
+                                //}
                                 residentChild = barangayRef.child(Name.getText().toString());
                                 residentChild.setValue(userHelper);
 
 
-                                Intent intent = new Intent(getApplicationContext(), Map_Activity.class);
+                                //INSERTM DATA TO SQLITE
+                                DBHelper db = new DBHelper(RegisterActivity.this);
+
+                                boolean inserted = db.insert(Name.getText().toString(),Password.getText().toString(),"Resident", CellphoneNumber.getText().toString());
+
+                                if(inserted){
+                                    //Toast.makeText(RegisterActivity.this,"Registered",Toast.LENGTH_LONG).show();
+                                }
+
+                                //INTENT
+                                Intent intent = new Intent(RegisterActivity.this, Map_Activity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 intent.putExtra("name", Name.getText().toString());
-                                intent.putExtra("userType", UserType.getSelectedItem().toString());
+                                intent.putExtra("userType", "Resident");
                                 startActivity(intent);
                             }
 
