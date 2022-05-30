@@ -14,15 +14,17 @@
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
         app:srcCompat="@drawable/sagip_agos_background" />
 
     <Button
         android:id="@+id/enter"
         android:layout_width="200dp"
         android:layout_height="32dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="10dp"
         android:layout_marginBottom="20dp"
         android:background="@drawable/button"
         android:fontFamily="sans-serif"
@@ -34,7 +36,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/Password"
+        app:layout_constraintTop_toBottomOf="@+id/textView"
         app:layout_constraintVertical_bias="0.0" />
 
     <EditText
@@ -46,7 +48,7 @@
         android:ems="10"
 
         android:fontFamily="sans-serif"
-        android:hint="Name"
+        android:hint="Fullname"
         android:inputType="textPersonName"
         android:paddingLeft="14dp"
         android:paddingTop="6dp"
@@ -92,7 +94,7 @@
         android:background="@drawable/edittext"
         android:ems="10"
         android:fontFamily="sans-serif"
-        android:hint="Address"
+        android:hint="Complete address"
         android:inputType="textPersonName"
         android:paddingLeft="14dp"
         android:paddingTop="6dp"
@@ -212,5 +214,19 @@
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/Name"
         app:layout_constraintTop_toBottomOf="@+id/imageView12" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="230dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="minimum of 8 characters and a maximum of 20 characters."
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView4"
+        app:layout_constraintEnd_toEndOf="@+id/Password"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/Password"
+        app:layout_constraintTop_toBottomOf="@+id/Password"
+        app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

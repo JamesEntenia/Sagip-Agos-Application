@@ -1,4 +1,4 @@
-package com.example.weareperpared;
+ package com.example.weareperpared;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -166,6 +166,7 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
 
     //Choose Map style
     String styleMode = "mapbox://styles/jempot23/cktv4tsp61xi117s8p3nta9qx";
+    //String styleMode = "mapbox://styles/jempot23/cl3qxyr8v000e16pfg634p6o2";
     boolean showComponentLocationClicked = false, hide = false;
     boolean GPSisOn;
     boolean OnStart = true,sosReqOngoing = false;
@@ -402,15 +403,27 @@ public class Map_Activity extends AppCompatActivity implements TaskFragment.Task
                         public void onDataChange(@NonNull DataSnapshot notification_snapshot) {
                             String time = notification_snapshot.child("time").getValue(String.class);
                             Log.i("notif",time);
-                            String message = notifLvl+" level as of "+time;
+                            String message = notification_snapshot.child("mes").getValue(String.class),title = "Sagip Agos ("+time+")";
+/*
+                            if(notifLvl.equals("Normal")){
+                                title = notifLvl+" level (Green): "+time;
+                            }else if(notifLvl.equals("Alert")){
+                                title = notifLvl+" level (Blue): "+time;
+                            }else if(notifLvl.equals("Warning")){
+                                title = notifLvl+" level (Yellow): "+time;
+                            }else if(notifLvl.equals("Critical")){
+                                title = notifLvl+" level (Pink): "+time;
+                            }else if(notifLvl.equals("Danger")){
+                                title = notifLvl+" level (Red): "+time;
+                            }*/
 
                             NotificationCompat.Builder builder = new NotificationCompat.Builder(Map_Activity.this,"water level notification")
                                     .setSmallIcon(R.drawable.app_logo)
-                                    .setContentTitle("Sagip Agos: Water Level")
+                                    .setContentTitle(title)
                                     .setContentText(message)
                                     .setAutoCancel(true);
                             //Vibration
-                            builder.setVibrate(new long[] { 0,1000,0,1000});
+                            builder.setVibrate(new long[] { 1000,1000,1000,1000});
 
                             //Ton
                             Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -2867,7 +2880,7 @@ public void setCurrentLocation(DataSnapshot snapshot){
                                 //searchingGPS.setVisibility(View.GONE);
                             }
 
-                            Log.i("latlng",""+destination);
+
                             setIdentification(contents, origin, destination);
                         }catch(Exception e){
                             Toast.makeText(Map_Activity.this, "Resident has no location", Toast.LENGTH_SHORT).show();
@@ -3292,36 +3305,8 @@ public void setCurrentLocation(DataSnapshot snapshot){
             @Override
             public void onClick(View v) {
 
-
                 if (ThisUserType.equals(rescuer_str)) {
-                    barangayRef.child(Username).child(assignedTo_str).setValue("Not assigned yet");
-
-                    try {
-                        navigationMapRoute.updateRouteVisibilityTo(false);
-                    }catch (Exception e){
-                        //Toast.makeText(Map_Activity.this,e+"",Toast.LENGTH_LONG).show();
-                    }
-
-                    //DoneBtn.setVisibility(View.GONE);
-                    barangayRef.child(residentToBeRescue[0].toString()).child("myRescuer").setValue(no_rescuer_assigned);
-                    barangayRef.child(residentToBeRescue[0].toString()).child("needRescue").setValue("no");
-                    barangayRef.child(residentToBeRescue[0].toString()).child("lat").setValue("");
-                    barangayRef.child(residentToBeRescue[0].toString()).child("lng").setValue("");
-                    barangayRef.child(Username+"/assignedTo").setValue("Not assigned yet");
-                    rescuerIsAvailable = true;
-                    identification.setVisibility(View.GONE);
-                    address_container.setVisibility(View.GONE);
-                    onTheWay.setVisibility(View.GONE);
-                    navigationBtn.setBackgroundResource(R.drawable.get_my_direction);
-
-                    residentToBeRescue[0] = null;
-                    residentToBeRescue[1] = null;
-                    residentToBeRescue[2] = null;
-                    residentToBeRescue[3] = null;
-                    residentToBeRescue[4] = null;
-                    residentToBeRescue[5] = null;
-
-                    residentSymbol();
+                    addRescueCount();
 
                 }
                 doneBtnDialogBox.dismiss();
@@ -3338,6 +3323,51 @@ public void setCurrentLocation(DataSnapshot snapshot){
         });
     }
 
+    public void addRescueCount(){
+
+        barangayRef.child(Username).child("rescueCount").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int rescueCount = snapshot.getValue(Integer.class);
+
+                barangayRef.child(Username).child("rescueCount").setValue(rescueCount+1);
+
+                //barangayRef.child(Username).child(assignedTo_str).setValue("Not assigned yet");
+
+                try {
+                    navigationMapRoute.updateRouteVisibilityTo(false);
+                }catch (Exception e){
+                    //Toast.makeText(Map_Activity.this,e+"",Toast.LENGTH_LONG).show();
+                }
+
+                //DoneBtn.setVisibility(View.GONE);
+                barangayRef.child(residentToBeRescue[0].toString()).child("myRescuer").setValue(no_rescuer_assigned);
+                barangayRef.child(residentToBeRescue[0].toString()).child("needRescue").setValue("no");
+                barangayRef.child(residentToBeRescue[0].toString()).child("lat").setValue("");
+                barangayRef.child(residentToBeRescue[0].toString()).child("lng").setValue("");
+                barangayRef.child(Username+"/assignedTo").setValue("Not assigned yet");
+                rescuerIsAvailable = true;
+                identification.setVisibility(View.GONE);
+                address_container.setVisibility(View.GONE);
+                onTheWay.setVisibility(View.GONE);
+                navigationBtn.setBackgroundResource(R.drawable.get_my_direction);
+
+                residentToBeRescue[0] = null;
+                residentToBeRescue[1] = null;
+                residentToBeRescue[2] = null;
+                residentToBeRescue[3] = null;
+                residentToBeRescue[4] = null;
+                residentToBeRescue[5] = null;
+
+                residentSymbol();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void serverRequestDialogBox(){

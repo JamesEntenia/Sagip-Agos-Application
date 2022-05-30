@@ -117,54 +117,62 @@ public class RegisterActivity extends AppCompatActivity {
 
 
                         yourNumber = (int) snapshot.getChildrenCount();
+                        if(!(Password.getText().toString().length() > 8 && Password.getText().toString().length() < 20)){
 
-                        //loop to check the number and name of all registered account
-                        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                            //snapshot.hasChild("");
-                            users = dataSnapshot.getValue(Users.class);
-                            //if name is existing
-                            if (users.name.equals(Name.getText().toString())) {
+                            Password.setText("");
+                            Toast.makeText(RegisterActivity.this, "Password must be a minimum of 8 characters and a maximum of 20 characters.", Toast.LENGTH_LONG).show();
 
-                                Toast.makeText(RegisterActivity.this, "Name is already registered", Toast.LENGTH_LONG).show();
-                                Name.setText(null);
-                                Name.setSelected(true);
-                                accountIsExisting = true;
-                                break;
-                                //if number is existing
-                            } else if (users.cellphoneNum.equals(CellphoneNumber.getText().toString())) {
-                                Toast.makeText(RegisterActivity.this, "Number is already registered", Toast.LENGTH_LONG).show();
-                                CellphoneNumber.setText(null);
-                                accountIsExisting = true;
-                                break;
-                            }else if(CellphoneNumber.getText().toString().length() != 11){
-                                Toast.makeText(RegisterActivity.this, "invalid number", Toast.LENGTH_LONG).show();
-                                CellphoneNumber.setText(null);
-                                accountIsExisting = true;
-                                break;
-                            }else if((CellphoneNumber.getText().toString().charAt(0)!=48)&&(CellphoneNumber.getText().toString().charAt(1)!=57)){
-                                Toast.makeText(RegisterActivity.this, "Number must be 09xxxxxxxxx", Toast.LENGTH_LONG).show();
-                                CellphoneNumber.setText(null);
-                                accountIsExisting = true;
-                                break;
+                        }else if((CellphoneNumber.getText().toString().length() == 11 && !CellphoneNumber.getText().toString().startsWith("09"))||
+                                //(CellphoneNumber.getText().toString().length() == 12 && !CellphoneNumber.getText().toString().startsWith("639"))||
+                                (CellphoneNumber.getText().toString().length() != 11)){
+
+                            Toast.makeText(RegisterActivity.this, "invalid number", Toast.LENGTH_LONG).show();
+                            CellphoneNumber.setText(null);
+
+                        }else if(Name.getText().toString().equals("")){
+                            Toast.makeText(RegisterActivity.this, "Please enter your Fullname", Toast.LENGTH_LONG).show();
+                        }else if(Name.getText().toString().equals("")){
+                            Toast.makeText(RegisterActivity.this, "Please enter your address", Toast.LENGTH_LONG).show();
+                        }else{
+
+
+                            //loop to check the number and name of all registered account
+                            for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                                //snapshot.hasChild("");
+                                users = dataSnapshot.getValue(Users.class);
+                                //if name is existing
+                                if (users.name.equals(Name.getText().toString())) {
+
+                                    Toast.makeText(RegisterActivity.this, "Name is already registered", Toast.LENGTH_LONG).show();
+                                    Name.setText(null);
+                                    Name.setSelected(true);
+                                    accountIsExisting = true;
+                                    break;
+                                    //if number is existing
+                                } else if (users.cellphoneNum.equals(CellphoneNumber.getText().toString())) {
+                                    Toast.makeText(RegisterActivity.this, "Number is already registered", Toast.LENGTH_LONG).show();
+                                    CellphoneNumber.setText(null);
+                                    accountIsExisting = true;
+                                    break;
+                                }
+
                             }
 
-                        }
+                            try {
+                                //if account is not existing, then register
+                                if (!accountIsExisting) {
+                                    accountIsExisting = true;
 
-                        try {
-                            //if account is not existing, then register
-                            if (!accountIsExisting) {
-                                accountIsExisting = true;
+                                    UserHelper userHelper;
+                                    /*if (UserType.getSelectedItem().toString().equals("Rescuer")) {
 
-                                UserHelper userHelper;
-                                /*if (UserType.getSelectedItem().toString().equals("Rescuer")) {
+                                        userHelper = new UserHelper(Name.getText().toString(), Address.getText().toString(),
+                                                CellphoneNumber.getText().toString(), "no", "", "", Password.getText().toString(),
+                                                UserType.getSelectedItem().toString(), "No rescuer assigned", "Not assigned yet", "", "online");
 
-                                    userHelper = new UserHelper(Name.getText().toString(), Address.getText().toString(),
-                                            CellphoneNumber.getText().toString(), "no", "", "", Password.getText().toString(),
-                                            UserType.getSelectedItem().toString(), "No rescuer assigned", "Not assigned yet", "", "online");
+                                    } else {
 
-                                } else {
-
-                                 */
+                                     */
                                     userHelper = new UserHelper(
                                             Name.getText().toString(),
                                             Address.getText().toString(),
@@ -177,32 +185,32 @@ public class RegisterActivity extends AppCompatActivity {
                                             "online",
                                             "No current location",
                                             "Normal");
-                                //}
-                                residentChild = barangayRef.child(Name.getText().toString());
-                                residentChild.setValue(userHelper);
+                                    //}
+                                    residentChild = barangayRef.child(Name.getText().toString());
+                                    residentChild.setValue(userHelper);
 
 
-                                //INSERTM DATA TO SQLITE
-                                DBHelper db = new DBHelper(RegisterActivity.this);
+                                    //INSERTM DATA TO SQLITE
+                                    DBHelper db = new DBHelper(RegisterActivity.this);
 
-                                boolean inserted = db.insert(Name.getText().toString(),Password.getText().toString(),"Resident", CellphoneNumber.getText().toString());
+                                    boolean inserted = db.insert(Name.getText().toString(),Password.getText().toString(),"Resident", CellphoneNumber.getText().toString());
 
-                                if(inserted){
-                                    //Toast.makeText(RegisterActivity.this,"Registered",Toast.LENGTH_LONG).show();
+                                    if(inserted){
+                                        //Toast.makeText(RegisterActivity.this,"Registered",Toast.LENGTH_LONG).show();
+                                    }
+
+                                    //INTENT
+                                    Intent intent = new Intent(RegisterActivity.this, Map_Activity.class);
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    intent.putExtra("name", Name.getText().toString());
+                                    intent.putExtra("userType", "Resident");
+                                    startActivity(intent);
                                 }
 
-                                //INTENT
-                                Intent intent = new Intent(RegisterActivity.this, Map_Activity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                intent.putExtra("name", Name.getText().toString());
-                                intent.putExtra("userType", "Resident");
-                                startActivity(intent);
+                            } catch (Exception e) {
+                                Toast.makeText(getApplicationContext(), "Please avoid using ('.','#','$','[',']')", Toast.LENGTH_LONG).show();
                             }
-
-                        } catch (Exception e) {
-                            Toast.makeText(getApplicationContext(), "Please avoid using ('.','#','$','[',']')", Toast.LENGTH_LONG).show();
                         }
-
 
                     }
 
